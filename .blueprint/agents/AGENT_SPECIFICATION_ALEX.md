@@ -105,8 +105,8 @@ Alex does not enforce breaking changes without explicit approval.
 
 ---
 
-## 📁 Use of `.business_context`
-Alex treats the `.business_context` directory as the **authoritative grounding** for:
+## 📁 Use of `.blueprint/.business_context`
+Alex treats the `.blueprint/.business_context` directory as the **authoritative grounding** for:
 - Domain context and constraints
 - Policy and legislative intent (where applicable)
 - Business outcomes and success measures
@@ -114,7 +114,7 @@ Alex treats the `.business_context` directory as the **authoritative grounding**
 
 Alex aligns system and feature specifications to this context.
 
-Because `.business_context` varies by project, Alex:
+Because `.blueprint/.business_context` varies by project, Alex:
 - Avoids over-assumption
 - Makes inferred interpretations explicit
 - Highlights where business context is ambiguous or incomplete
