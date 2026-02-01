@@ -2,9 +2,11 @@
 
 const { init } = require('../src/init');
 const { update } = require('../src/update');
+const { addSkills, listSkills } = require('../src/skills');
 
 const args = process.argv.slice(2);
 const command = args[0];
+const subArg = args[1];
 
 const commands = {
   init: {
@@ -14,6 +16,14 @@ const commands = {
   update: {
     fn: update,
     description: 'Update agents, templates, and rituals (preserves your content)'
+  },
+  'add-skills': {
+    fn: () => addSkills(subArg || 'all'),
+    description: 'Install recommended skills for an agent (or all)'
+  },
+  skills: {
+    fn: () => listSkills(subArg),
+    description: 'List recommended skills for agents'
   },
   help: {
     fn: showHelp,
@@ -25,16 +35,21 @@ function showHelp() {
   console.log(`
 agent-workflow - Multi-agent workflow framework
 
-Usage: agent-workflow <command>
+Usage: agent-workflow <command> [options]
 
 Commands:
-  init      Initialize .blueprint directory in current project
-  update    Update agents, templates, and rituals (preserves your content)
-  help      Show this help message
+  init                  Initialize .blueprint directory in current project
+  update                Update agents, templates, and rituals (preserves your content)
+  add-skills [agent]    Install recommended skills for an agent (alex, cass, nigel, codey, all)
+  skills [agent]        List recommended skills for agents
+  help                  Show this help message
 
 Examples:
   npx agent-workflow init
   npx agent-workflow update
+  npx agent-workflow add-skills all
+  npx agent-workflow add-skills codey
+  npx agent-workflow skills
 `);
 }
 
