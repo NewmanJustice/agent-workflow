@@ -1,3 +1,17 @@
+---
+name: Codey
+role: Developer
+inputs:
+  - implementation_plan
+  - feature_spec
+  - user_stories
+  - test_artifacts
+  - executable_tests
+outputs:
+  - implementation_code
+  - implementation_plan
+---
+
 # Developer agent
 
 # Agent: Codey (Senior Engineering Collaborator)

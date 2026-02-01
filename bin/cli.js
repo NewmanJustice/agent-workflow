@@ -3,6 +3,7 @@
 const { init } = require('../src/init');
 const { update } = require('../src/update');
 const { addSkills, listSkills } = require('../src/skills');
+const { displayQueue, resetQueue } = require('../src/orchestrator');
 
 const args = process.argv.slice(2);
 const command = args[0];
@@ -25,6 +26,17 @@ const commands = {
     fn: () => listSkills(subArg),
     description: 'List recommended skills for agents'
   },
+  queue: {
+    fn: () => {
+      if (subArg === 'reset') {
+        resetQueue();
+        console.log('Queue has been reset.');
+      } else {
+        displayQueue();
+      }
+    },
+    description: 'Show queue status (use "reset" to clear)'
+  },
   help: {
     fn: showHelp,
     description: 'Show this help message'
@@ -42,6 +54,8 @@ Commands:
   update                Update agents, templates, and rituals (preserves your content)
   add-skills [agent]    Install recommended skills for an agent (alex, cass, nigel, codey, all)
   skills [agent]        List recommended skills for agents
+  queue                 Show current queue state for /implement-feature pipeline
+  queue reset           Clear the queue and reset all state
   help                  Show this help message
 
 Examples:
@@ -50,6 +64,8 @@ Examples:
   npx agent-workflow add-skills all
   npx agent-workflow add-skills codey
   npx agent-workflow skills
+  npx agent-workflow queue
+  npx agent-workflow queue reset
 `);
 }
 
