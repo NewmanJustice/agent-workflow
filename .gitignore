@@ -1,3 +1,9 @@
 
 # Ignore devcontainer configuration
 .devcontainer/
+
+# Node
+node_modules/
+
+# agent-workflow queue
+.claude/implement-queue.json

@@ -1,0 +1,31 @@
+{
+  "name": "agent-workflow",
+  "version": "0.1.0",
+  "description": "Multi-agent workflow framework for automated feature development",
+  "main": "src/index.js",
+  "bin": {
+    "agent-workflow": "./bin/cli.js"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "keywords": [
+    "agent",
+    "workflow",
+    "ai",
+    "automation",
+    "claude",
+    "feature-development"
+  ],
+  "author": "",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "bin",
+    "src",
+    ".blueprint",
+    "SKILL.md"
+  ]
+}
