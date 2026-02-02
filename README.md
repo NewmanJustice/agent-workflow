@@ -1,4 +1,4 @@
-# agent-workflow
+# orchestr8
 
 A multi-agent workflow framework for automated feature development. Four specialized AI agents collaborate in sequence to take features from specification to implementation.
 
