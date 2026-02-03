@@ -14,7 +14,7 @@ A multi-agent workflow framework for automated feature development. Four special
 ## Installation
 
 ```bash
-npx agent-workflow init
+npx orchestr8 init
 ```
 
 This installs the `.blueprint/` directory and `SKILL.md` into your project. If files already exist, you'll be prompted before overwriting. It also adds the workflow queue to `.gitignore`.
@@ -23,11 +23,11 @@ This installs the `.blueprint/` directory and `SKILL.md` into your project. If f
 
 | Command | Description |
 |---------|-------------|
-| `npx agent-workflow init` | Initialize `.blueprint/` and `SKILL.md` in your project |
-| `npx agent-workflow update` | Update agents, templates, and rituals to latest version |
-| `npx agent-workflow add-skills [agent]` | Install recommended skills for an agent (alex, cass, nigel, codey, all) |
-| `npx agent-workflow skills [agent]` | List recommended skills |
-| `npx agent-workflow help` | Show help |
+| `npx orchestr8 init` | Initialize `.blueprint/` and `SKILL.md` in your project |
+| `npx orchestr8 update` | Update agents, templates, and rituals to latest version |
+| `npx orchestr8 add-skills [agent]` | Install recommended skills for an agent (alex, cass, nigel, codey, all) |
+| `npx orchestr8 skills [agent]` | List recommended skills |
+| `npx orchestr8 help` | Show help |
 
 The `update` command preserves your content in `features/` and `system_specification/` while updating the framework files. Your `.business_context/` directory is separate from `.blueprint/` and unaffected by updates.
 
@@ -43,8 +43,8 @@ Each agent has recommended skills from the [skills.sh](https://skills.sh) ecosys
 | **Codey** | `javascript-expert`, `modern-javascript-patterns` |
 
 ```bash
-npx agent-workflow add-skills all     # Install all recommended skills
-npx agent-workflow add-skills codey   # Install skills for Codey only
+npx orchestr8 add-skills all     # Install all recommended skills
+npx orchestr8 add-skills codey   # Install skills for Codey only
 ```
 
 ## Usage
