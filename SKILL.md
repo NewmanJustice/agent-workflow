@@ -14,6 +14,7 @@ description: Run the Alex → Cass → Nigel → Codey pipeline using Task tool 
 | `{FEAT_SPEC}` | `{FEAT_DIR}/FEATURE_SPEC.md` |
 | `{STORIES}` | `{FEAT_DIR}/story-*.md` |
 | `{TEST_DIR}` | `./test/artifacts/feature_{slug}` |
+| `{TEST_SPEC}` | `{TEST_DIR}/test-spec.md` |
 | `{TEST_FILE}` | `./test/feature_{slug}.test.js` |
 | `{PLAN}` | `{FEAT_DIR}/IMPLEMENTATION_PLAN.md` |
 | `{QUEUE}` | `.claude/implement-queue.json` |
@@ -43,6 +44,16 @@ description: Run the Alex → Cass → Nigel → Codey pipeline using Task tool 
        ▼
    SPAWN ALEX → SPAWN CASS → SPAWN NIGEL → SPAWN CODEY → AUTO-COMMIT
 ```
+
+## Output Constraints (CRITICAL)
+
+**All agents MUST follow these rules to avoid token limit errors:**
+
+1. **Write files incrementally** - Write each file separately, never combine multiple files in one response
+2. **Keep summaries brief** - Final completion summaries should be 5-10 bullet points max
+3. **Reference, don't repeat** - Use file paths instead of quoting content from other artifacts
+4. **One concern per file** - Don't merge unrelated content into single large files
+5. **Chunk large files** - If a file would exceed ~200 lines, split into logical parts
 
 ---
 
@@ -87,13 +98,14 @@ Create a feature specification for "{slug}".
 ## Output (write this file)
 Write the feature spec to: {FEAT_DIR}/FEATURE_SPEC.md
 
+## Output Rules
+- Write file incrementally (section by section if large)
+- Only include sections relevant to this feature (skip empty/N/A sections)
+- Reference system spec by path, don't repeat its content
+- Keep Change Log to 1-2 entries max
+
 ## Completion
-When done, summarize:
-- Feature intent
-- Key behaviours
-- Scope boundaries
-- Story themes you recommend
-- Any system spec tensions found
+Brief summary (5 bullets max): intent, key behaviours, scope, story themes, tensions
 ```
 
 **On completion:**
@@ -128,16 +140,17 @@ Create one markdown file per user story in {FEAT_DIR}/:
 
 Each story must include:
 - User story in standard format
-- Context/scope
-- Acceptance criteria (Given/When/Then)
-- Session persistence shape (if relevant)
-- Out of scope items
+- Acceptance criteria (Given/When/Then) - max 5-7 per story
+- Out of scope items (brief list)
+
+## Output Rules
+- Write ONE story file at a time, then move to next
+- Keep each story focused - split large stories into multiple files
+- Reference feature spec by path for shared context
+- Skip boilerplate sections (session shape only if non-obvious)
 
 ## Completion
-When done, summarize:
-- Number of stories created
-- Story filenames
-- Key behaviours covered
+Brief summary: story count, filenames, behaviours covered (5 bullets max)
 ```
 
 **On completion:**
@@ -165,27 +178,31 @@ Create tests for feature "{slug}".
 ## Inputs (read these files)
 - Stories: {FEAT_DIR}/story-*.md
 - Feature Spec: {FEAT_DIR}/FEATURE_SPEC.md
-- System Spec: .blueprint/system_specification/SYSTEM_SPEC.md
 
-## Outputs (write these files)
-1. Test artifacts in {TEST_DIR}/:
-   - understanding.md
-   - test-plan.md
-   - test-behaviour-matrix.md
-   - implementation-guide.md
+## Outputs (write these files IN ORDER, one at a time)
 
-2. Executable tests:
-   - {TEST_FILE}
+Step 1: Write {TEST_DIR}/test-spec.md containing:
+- Brief understanding (5-10 lines)
+- AC → Test ID mapping table (compact)
+- Key assumptions (bullet list)
+
+Step 2: Write {TEST_FILE} containing:
+- Executable tests (Jest/Node test runner)
+- Group by user story
+- One describe block per story, one test per AC
+
+## Output Rules
+- Write test-spec.md FIRST, then write test file
+- Keep test-spec.md under 100 lines (table format, no prose)
+- Tests should be self-documenting - minimal comments
+- Reference story files by path in test descriptions
 
 ## Completion
-When done, summarize:
-- Test count
-- Coverage of acceptance criteria
-- Key assumptions made
+Brief summary: test count, AC coverage %, assumptions (5 bullets max)
 ```
 
 **On completion:**
-1. Verify `{TEST_FILE}` exists
+1. Verify `{TEST_SPEC}` and `{TEST_FILE}` exist
 2. Update queue: move feature to `codeyQueue`
 3. If `--pause-after=nigel`: Show test paths, ask user to continue
 
@@ -209,21 +226,17 @@ Create an implementation plan for feature "{slug}". Do NOT implement yet.
 ## Inputs (read these files)
 - Feature Spec: {FEAT_DIR}/FEATURE_SPEC.md
 - Stories: {FEAT_DIR}/story-*.md
-- Test Artifacts: {TEST_DIR}/
+- Test Spec: {TEST_DIR}/test-spec.md
 - Tests: {TEST_FILE}
 
 ## Output (write this file)
 Write implementation plan to: {FEAT_DIR}/IMPLEMENTATION_PLAN.md
 
-Plan structure:
-## Summary
-## Understanding (behaviors, test count)
-## Files to Create/Modify
-## Implementation Steps
-## Data Model (if applicable)
-## Validation Rules
-## Risks/Questions
-## Definition of Done
+Plan structure (keep concise - aim for <80 lines total):
+## Summary (2-3 sentences)
+## Files to Create/Modify (table: path | action | purpose)
+## Implementation Steps (numbered, max 10 steps)
+## Risks/Questions (bullet list, only if non-obvious)
 ```
 
 **On completion:**
@@ -249,27 +262,29 @@ Implement feature "{slug}" according to the plan.
 
 ## Inputs (read these files)
 - Implementation Plan: {FEAT_DIR}/IMPLEMENTATION_PLAN.md
-- Feature Spec: {FEAT_DIR}/FEATURE_SPEC.md
-- Stories: {FEAT_DIR}/story-*.md
-- Test Artifacts: {TEST_DIR}/
 - Tests: {TEST_FILE}
 
-## Process
-1. Run tests to establish baseline: npm test
-2. Implement code to make tests pass
-3. Run npm test to verify all tests pass
-4. Run npm run lint (if available) to verify code quality
+## Process (INCREMENTAL - one file at a time)
+1. Run tests: node --test {TEST_FILE}
+2. For each failing test group:
+   a. Identify the minimal code needed
+   b. Write/edit ONE file
+   c. Run tests again
+   d. Repeat until group passes
+3. Move to next test group
+
+## Output Rules
+- Write ONE source file at a time
+- Run tests after each file write
+- Keep functions small (<30 lines)
+- No explanatory comments in code - code should be self-documenting
 
 ## Important
 - Do NOT commit changes
 - Do NOT modify test assertions unless they contain bugs
-- Focus on making tests pass
 
 ## Completion
-When done, summarize:
-- Files created/modified
-- Test status (pass/fail count)
-- Any issues encountered
+Brief summary: files changed (list), test status (X/Y passing), blockers if any
 ```
 
 **On completion:**

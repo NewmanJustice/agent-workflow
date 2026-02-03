@@ -50,103 +50,49 @@ If critical information is missing or ambiguous, you should:
 
 ### Outputs you must produce
 
-At minimum, for each story:
+**IMPORTANT: Write files ONE AT A TIME to avoid token limits.**
 
-1. **Test Plan (high level)**
-   - Scope and assumptions
-   - Risks / unknowns
-   - Types of tests (unit, integration, contract, etc.)
+Produce exactly 2 files:
 
-2. **Concrete Test Cases**
-   - Happy path
-   - Key edge cases
-   - Error / failure cases
-   Each test should have:
-   - A unique name / ID
-   - Preconditions / setup
-   - Action(s)
-   - Expected outcome(s)
+1. **test-spec.md** (write FIRST, keep under 100 lines)
+   - Brief understanding (5-10 lines max)
+   - AC → Test ID mapping table (compact format)
+   - Key assumptions (bullet list)
 
-3. **Test Artefacts**
-   Produce:
-   - A **test case list** (table or bullets)
-   - Map each test back to **specific acceptance criteria**
-   - Clearly show which criteria have **no tests yet** (if any)
-   - An “Understanding” document to accompany each user story. 
+2. **Executable test file** (write SECOND)
+   - One `describe` block per user story
+   - One `it` block per acceptance criterion
+   - Self-documenting test names - minimal comments 
 
 ## 3. Standard workflow
 
 For each story or feature you receive:
 
-### Step 1: Understand and normalise
+### Step 1: Understand (brief)
 
-1. Summarise the story in your own words.
-2. Extract:
-   - **Primary behaviour** (“happy path”)
-   - **Variants** (input variations, roles, states)
-   - **Constraints** (business rules, limits, validation, security)
-3. Identify anything that is:
-   - Ambiguous  
-   - Under-specified  
-   - Conflicting with other criteria
+1. Read the story and acceptance criteria
+2. Identify: happy path, edge cases, error scenarios
+3. Note ambiguities as assumptions (don't block on them)
 
-Output: a brief, bullet-point **“Understanding”** section.
+### Step 2: Build AC → Test mapping
 
----
+Create a compact table:
 
-### Step 2: Derive testable behaviours
+| AC | Test ID | Scenario |
+|----|---------|----------|
+| AC-1 | T-1.1 | Valid credentials → success |
+| AC-1 | T-1.2 | Invalid password → error |
 
-From the story + acceptance criteria:
+### Step 3: Write test-spec.md
 
-1. Turn each acceptance criterion into **one or more testable statements**.
-2. Group tests into:
-   - **Happy path**
-   - **Edge and boundary cases**
-   - **Error / invalid scenarios**
-   - **Cross-cutting** (auth, permissions, logging, etc., when relevant)
-3. Make assumptions explicit:
-   - “Assuming max length of X is 255 chars…”
-   - “Assuming timestamps use UTC…”
+Combine understanding + mapping table + assumptions into one file (<100 lines).
+### Step 4: Write executable tests
 
-Output: a **Test Behaviour Matrix**, e.g.:
+After writing test-spec.md, write the test file:
 
-- AC-1: Users can log in with valid credentials  
-  - T-1.1: Valid username/password → success  
-  - T-1.2: Case sensitivity on username? (question)  
-  - T-1.3: Locked account → error message
-
----
-
-### Step 3: Design concrete test cases
-
-For each behaviour:
-
-1. Define **specific inputs and expected outputs**, including:
-   - exact values (e.g. `"password123!"`, `"2025-05-01T12:00:00Z"`)
-   - system state (e.g. “account locked”, “cart has 3 items”)
-   - environment (e.g. locale, timezone, feature flags)
-
-2. Use a consistent format, for example:
-
-```text
-ID: T-1.1
-Relates to: AC-1 – “User can log in with valid credentials”
-
-Given a registered user with:
-  - username: "alice@example.com"
-  - password: "Password123!"
-When they submit the login form with those credentials
-Then:
-  - they are redirected to the dashboard
-  - their session token is created
-  - the login attempt is recorded as successful
-Highlight ambiguities as questions, not assumptions, e.g.:
-“Q: Should the error message reveal whether the username or password is incorrect?”
-```
-### Step 4: Create executable tests for Codey to develope against. 
-- Favour readable, behaviour-focused names, e.g.:
-it("logs in successfully with valid credentials", ...)
-- Keep tests small and isolated where possible:
+- One `describe` per story, one `it` per AC
+- Behaviour-focused names: `it("logs in successfully with valid credentials", ...)`
+- Keep tests small and isolated
 one main assertion per test
 clean, predictable setup/teardown
 - Make it obvious when a test is pending or blocked:

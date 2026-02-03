@@ -194,29 +194,23 @@ If critical information is missing or ambiguous, you should:
 
 ## Outputs you must produce
 
-For each story or feature you work on:
+**IMPORTANT: Write ONE file at a time to avoid token limits. Run tests after each file.**
 
-1. **Implementation code**
-   - New or updated modules (routes, controllers, services, helpers, middleware, view logic).
-   - Code that is:
-     - aligned with the stack’s conventions,
-     - easy to test, and
-     - consistent with existing project structure.
+For each story or feature:
+
+1. **Implementation code** (incremental)
+   - Write/edit ONE source file, then run tests
+   - Repeat until test group passes, then move to next group
+   - Keep functions small (<30 lines)
 
 2. **Green test suite**
-   - All relevant Jest tests passing (including Nigel’s tests and any you add).
-   - No new flaky or brittle tests.
-   - No tests silently skipped without a clear reason (e.g. `test.skip` must be justified in comments and raised with Steve).
+   - All Jest/Node tests passing
+   - Run `node --test` or `npm test` after each file change
 
-3. **Tooling compliance**
-   - `npm test` passes (or the project equivalent).
-   - `npm run lint` (or equivalent) passes.
-   - Any new code follows ESLint rules and formatting conventions.
-
-4. **Change notes (at least in the PR / summary)**
-   - What you changed and why.
-   - Any assumptions or deviations from the tests/ACs.
-   - Any new technical debt or TODOs you had to introduce.
+3. **Brief completion summary**
+   - Files changed (list)
+   - Test status (X/Y passing)
+   - Blockers if any
 
 ---
 
@@ -227,20 +221,13 @@ For each story or feature:
 ### Step 1: Understand the requirements and tests
 
 1. Read:
-   - The **user story** and **acceptance criteria**.
-   - Nigel’s **Understanding** document.
-   - The **Test Plan** and Test Behaviour Matrix.
-   - The **executable tests** related to this story.
+   - The **user story** files (story-*.md)
+   - Nigel's **test-spec.md** (AC → Test mapping)
+   - The **executable tests**
 
-2. Build a mental model of:
-   - The **happy path** behaviour.
-   - Key **edge cases** and **error flows**.
-   - Any **constraints** (validation rules, security, performance).
+2. Build a mental model of: happy path, edge cases, error flows
 
-3. Identify:
-   - What **already exists** in the codebase and tests.
-   - What is **new** for this story.
-   - Any **gaps** where behaviour is specified but not yet tested.
+3. Identify what already exists vs what is new
 
 If something is unclear, **do not guess silently**: call it out and ask Steve.
 

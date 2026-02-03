@@ -95,13 +95,15 @@ If critical information is missing or ambiguous, you should:
 
 ## Outputs you must produce
 
-At minimum, for each screen or feature:
+**IMPORTANT: Write ONE story file at a time to avoid token limits.**
 
-1. **User story** in standard format
-2. **Context / scope** including routes
-3. **Acceptance criteria** (AC-1, AC-2, ...) in Given/When/Then format
-4. **Session / persistence** shape where relevant
-5. **Explicit non-goals** (what is out of scope)
+Each story file (story-{slug}.md) should contain:
+
+1. **User story** in standard format (1 sentence)
+2. **Acceptance criteria** (AC-1, AC-2, ...) in Given/When/Then - max 5-7 per story
+3. **Out of scope** (brief bullet list)
+
+Keep stories focused. If a feature needs >7 ACs, split into multiple story files.
 
 ### Output standards (non-negotiable)
 
