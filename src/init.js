@@ -60,6 +60,8 @@ function updateGitignore() {
 async function init() {
   const blueprintSrc = path.join(PACKAGE_ROOT, '.blueprint');
   const blueprintDest = path.join(TARGET_DIR, '.blueprint');
+  const businessContextSrc = path.join(PACKAGE_ROOT, '.business_context');
+  const businessContextDest = path.join(TARGET_DIR, '.business_context');
   const skillSrc = path.join(PACKAGE_ROOT, 'SKILL.md');
   const skillDest = path.join(TARGET_DIR, 'SKILL.md');
 
@@ -92,6 +94,15 @@ async function init() {
   copyDir(blueprintSrc, blueprintDest);
   console.log('Copied .blueprint directory');
 
+  // Copy .business_context directory
+  if (!fs.existsSync(businessContextDest)) {
+    console.log('Copying .business_context directory...');
+    copyDir(businessContextSrc, businessContextDest);
+    console.log('Copied .business_context directory');
+  } else {
+    console.log('.business_context directory already exists, skipping');
+  }
+
   // Update .gitignore
   updateGitignore();
 
@@ -99,7 +110,7 @@ async function init() {
 agent-workflow initialized successfully!
 
 Next steps:
-1. Add business context to .blueprint/.business_context/
+1. Add business context documents to .business_context/
 2. Run /implement-feature in Claude Code to start your first feature
 `);
 }

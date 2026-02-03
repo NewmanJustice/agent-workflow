@@ -82,7 +82,7 @@ Create a feature specification for "{slug}".
 ## Inputs (read these files)
 - System Spec: .blueprint/system_specification/SYSTEM_SPEC.md
 - Template: .blueprint/templates/FEATURE_SPEC.md
-- Business Context: .blueprint/.business_context/
+- Business Context: .business_context/
 
 ## Output (write this file)
 Write the feature spec to: {FEAT_DIR}/FEATURE_SPEC.md

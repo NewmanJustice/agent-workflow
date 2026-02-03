@@ -1,6 +1,6 @@
 {
   "name": "orchestr8",
-  "version": "2.1.4",
+  "version": "2.2.0",
   "description": "Multi-agent workflow framework for automated feature development",
   "main": "src/index.js",
   "bin": {
@@ -30,6 +30,7 @@
     "bin",
     "src",
     ".blueprint",
+    ".business_context",
     "SKILL.md"
   ]
 }

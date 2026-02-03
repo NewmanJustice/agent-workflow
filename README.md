@@ -29,7 +29,7 @@ This installs the `.blueprint/` directory and `SKILL.md` into your project. If f
 | `npx agent-workflow skills [agent]` | List recommended skills |
 | `npx agent-workflow help` | Show help |
 
-The `update` command preserves your content in `features/`, `system_specification/`, and `.business_context/` while updating the framework files.
+The `update` command preserves your content in `features/` and `system_specification/` while updating the framework files. Your `.business_context/` directory is separate from `.blueprint/` and unaffected by updates.
 
 ### Optional Skills
 
@@ -71,19 +71,22 @@ Update System:  Alex → cascade check
 ## Directory Structure
 
 ```
-.blueprint/
-├── agents/                    # Agent specifications
-│   ├── AGENT_SPECIFICATION_ALEX.md
-│   ├── AGENT_BA_CASS.md
-│   ├── AGENT_TESTER_NIGEL.md
-│   └── AGENT_DEVELOPER_CODEY.md
-├── templates/                 # Spec templates
-│   ├── SYSTEM_SPEC.md
-│   └── FEATURE_SPEC.md
-├── ways_of_working/           # Development rituals
-├── features/                  # Feature specs (created per feature)
-├── system_specification/      # System spec (created on first run)
-└── .business_context/         # Project-specific context
+your-project/
+├── .blueprint/
+│   ├── agents/                    # Agent specifications
+│   │   ├── AGENT_SPECIFICATION_ALEX.md
+│   │   ├── AGENT_BA_CASS.md
+│   │   ├── AGENT_TESTER_NIGEL.md
+│   │   └── AGENT_DEVELOPER_CODEY.md
+│   ├── templates/                 # Spec templates
+│   │   ├── SYSTEM_SPEC.md
+│   │   └── FEATURE_SPEC.md
+│   ├── ways_of_working/           # Development rituals
+│   ├── features/                  # Feature specs (created per feature)
+│   └── system_specification/      # System spec (created on first run)
+├── .business_context/             # Business context documents
+│   └── README.md
+└── SKILL.md
 ```
 
 ## How It Works

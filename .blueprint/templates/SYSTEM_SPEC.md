@@ -14,7 +14,7 @@
 ---
 
 ## 2. Business & Domain Context
-**Grounded in `.blueprint/.business_context`.**
+**Grounded in `.business_context`.**
 
 - Relevant policy, legislation, or organisational drivers
 - Domain constraints the system must respect

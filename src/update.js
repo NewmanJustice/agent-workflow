@@ -8,8 +8,7 @@ const TARGET_DIR = process.cwd();
 // Directories that contain user content and should NOT be overwritten
 const USER_CONTENT_DIRS = [
   'features',
-  'system_specification',
-  '.business_context'
+  'system_specification'
 ];
 
 // Directories/files that should be updated
@@ -63,7 +62,7 @@ async function update() {
   }
 
   console.log('Updating agent-workflow...');
-  console.log('(Preserving: features/, system_specification/, .business_context/)\n');
+  console.log('(Preserving: features/, system_specification/)\n');
 
   // Update each updatable directory
   for (const dir of UPDATABLE) {
@@ -98,7 +97,7 @@ Updated:
 Preserved:
   - .blueprint/features/
   - .blueprint/system_specification/
-  - .blueprint/.business_context/
+  - .business_context/
 `);
 }
 
