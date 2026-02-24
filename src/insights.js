@@ -1,0 +1,374 @@
+const { readHistoryFile, formatDuration } = require('./history');
+
+const STAGES = ['alex', 'cass', 'nigel', 'codey-plan', 'codey-implement'];
+
+function calculateMean(values) {
+  if (values.length === 0) return 0;
+  return values.reduce((a, b) => a + b, 0) / values.length;
+}
+
+function calculateStdDev(values, mean) {
+  if (values.length === 0) return 0;
+  const variance = values.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / values.length;
+  return Math.sqrt(variance);
+}
+
+function analyzeBottlenecks(history) {
+  const successRuns = history.filter(e => e.status === 'success' && e.stages);
+  if (successRuns.length < 3) {
+    return { insufficientData: true, message: 'Insufficient data for bottleneck analysis (need 3+ runs)' };
+  }
+
+  const stageDurations = {};
+  for (const stage of STAGES) {
+    stageDurations[stage] = [];
+  }
+
+  for (const entry of successRuns) {
+    for (const stage of STAGES) {
+      if (entry.stages[stage] && entry.stages[stage].durationMs) {
+        stageDurations[stage].push(entry.stages[stage].durationMs);
+      }
+    }
+  }
+
+  const stageAvgs = {};
+  let totalAvgDuration = 0;
+  for (const stage of STAGES) {
+    const avg = calculateMean(stageDurations[stage]);
+    stageAvgs[stage] = avg;
+    totalAvgDuration += avg;
+  }
+
+  let maxStage = null;
+  let maxAvg = 0;
+  for (const stage of STAGES) {
+    if (stageAvgs[stage] > maxAvg) {
+      maxAvg = stageAvgs[stage];
+      maxStage = stage;
+    }
+  }
+
+  const percentage = totalAvgDuration > 0 ? (maxAvg / totalAvgDuration) * 100 : 0;
+  const isBottleneck = percentage > 35;
+  const recommendation = percentage > 40
+    ? `Consider optimizing ${maxStage} stage to improve pipeline throughput`
+    : null;
+
+  return {
+    stages: stageAvgs,
+    bottleneckStage: maxStage,
+    avgDurationMs: maxAvg,
+    percentage: Math.round(percentage * 10) / 10,
+    isBottleneck,
+    recommendation
+  };
+}
+
+function analyzeFailures(history) {
+  const failedRuns = history.filter(e => e.status === 'failed');
+  if (failedRuns.length === 0) {
+    return { noFailures: true, message: 'No failures recorded' };
+  }
+
+  const failuresByStage = {};
+  const featureFailures = {};
+
+  for (const entry of failedRuns) {
+    if (entry.failedStage) {
+      failuresByStage[entry.failedStage] = (failuresByStage[entry.failedStage] || 0) + 1;
+    }
+    if (entry.slug) {
+      featureFailures[entry.slug] = (featureFailures[entry.slug] || 0) + 1;
+    }
+  }
+
+  // Find most common failure stage (first occurrence wins ties)
+  let mostCommonStage = null;
+  let maxCount = 0;
+  for (const stage of STAGES) {
+    if ((failuresByStage[stage] || 0) > maxCount) {
+      maxCount = failuresByStage[stage];
+      mostCommonStage = stage;
+    }
+  }
+
+  const repeatedFeatures = Object.entries(featureFailures)
+    .filter(([, count]) => count > 1)
+    .map(([slug, count]) => ({ slug, count }));
+
+  const totalRuns = history.length;
+  const failureRate = (failedRuns.length / totalRuns) * 100;
+  const isHighFailureRate = failureRate > 15;
+  const recommendation = failureRate > 20
+    ? `High failure rate detected. Review ${mostCommonStage} stage for common issues`
+    : null;
+
+  return {
+    failuresByStage,
+    mostCommonStage,
+    failureCount: maxCount,
+    repeatedFeatures,
+    failureRate: Math.round(failureRate * 10) / 10,
+    isHighFailureRate,
+    recommendation
+  };
+}
+
+function detectAnomalies(history) {
+  const runsWithStages = history.filter(e => e.stages);
+  if (runsWithStages.length < 3) {
+    return { insufficientData: true, message: 'Insufficient data for anomaly detection' };
+  }
+
+  const stageDurations = {};
+  for (const stage of STAGES) {
+    stageDurations[stage] = [];
+  }
+
+  for (const entry of runsWithStages) {
+    for (const stage of STAGES) {
+      if (entry.stages[stage] && entry.stages[stage].durationMs) {
+        stageDurations[stage].push({
+          slug: entry.slug,
+          duration: entry.stages[stage].durationMs
+        });
+      }
+    }
+  }
+
+  const anomalies = [];
+  const last10 = runsWithStages.slice(-10);
+
+  for (const stage of STAGES) {
+    const allDurations = stageDurations[stage].map(d => d.duration);
+    const mean = calculateMean(allDurations);
+    const stddev = calculateStdDev(allDurations, mean);
+    const threshold = mean + 2 * stddev;
+
+    for (const entry of last10) {
+      if (entry.stages[stage] && entry.stages[stage].durationMs > threshold && stddev > 0) {
+        const actual = entry.stages[stage].durationMs;
+        const deviation = (actual - mean) / stddev;
+        anomalies.push({
+          slug: entry.slug,
+          stage,
+          actual,
+          expected: Math.round(mean),
+          deviation: Math.round(deviation * 10) / 10
+        });
+      }
+    }
+  }
+
+  if (anomalies.length === 0) {
+    return { noAnomalies: true, message: 'No anomalies detected in recent runs' };
+  }
+
+  return {
+    anomalies,
+    recommendation: anomalies.length > 0
+      ? 'Review flagged runs for unusual conditions or environment issues'
+      : null
+  };
+}
+
+function analyzeTrends(history) {
+  if (history.length < 6) {
+    return { insufficientData: true, message: 'Insufficient data for trend analysis (need 6+ runs)' };
+  }
+
+  const midpoint = Math.floor(history.length / 2);
+  const firstHalf = history.slice(0, midpoint);
+  const secondHalf = history.slice(midpoint);
+
+  // Success rate trend
+  const firstSuccessRate = firstHalf.filter(e => e.status === 'success').length / firstHalf.length * 100;
+  const secondSuccessRate = secondHalf.filter(e => e.status === 'success').length / secondHalf.length * 100;
+  const successRateChange = secondSuccessRate - firstSuccessRate;
+
+  let successTrend = 'stable';
+  if (successRateChange > 10) successTrend = 'improving';
+  else if (successRateChange < -10) successTrend = 'degrading';
+
+  // Duration trend
+  const firstDurations = firstHalf.filter(e => e.totalDurationMs).map(e => e.totalDurationMs);
+  const secondDurations = secondHalf.filter(e => e.totalDurationMs).map(e => e.totalDurationMs);
+
+  const firstAvgDuration = calculateMean(firstDurations);
+  const secondAvgDuration = calculateMean(secondDurations);
+  const durationChange = firstAvgDuration > 0
+    ? ((secondAvgDuration - firstAvgDuration) / firstAvgDuration) * 100
+    : 0;
+
+  let durationTrend = 'stable';
+  if (durationChange < -10) durationTrend = 'improving';
+  else if (durationChange > 10) durationTrend = 'degrading';
+
+  let recommendation = null;
+  if (successTrend === 'degrading') {
+    recommendation = 'Pipeline success rate is declining. Review recent changes for regressions';
+  } else if (durationTrend === 'degrading') {
+    recommendation = 'Pipeline duration is increasing. Consider performance optimization';
+  }
+
+  return {
+    successRate: {
+      trend: successTrend,
+      change: Math.round(successRateChange * 10) / 10,
+      first: Math.round(firstSuccessRate * 10) / 10,
+      second: Math.round(secondSuccessRate * 10) / 10
+    },
+    duration: {
+      trend: durationTrend,
+      change: Math.round(durationChange * 10) / 10,
+      first: Math.round(firstAvgDuration),
+      second: Math.round(secondAvgDuration)
+    },
+    recommendation
+  };
+}
+
+function formatTextOutput(analysis, sections) {
+  const lines = ['\nPipeline Insights\n'];
+
+  const showAll = sections.length === 0;
+  const showBottlenecks = showAll || sections.includes('bottlenecks');
+  const showFailures = showAll || sections.includes('failures');
+  const showAnomalies = showAll || sections.includes('anomalies');
+  const showTrends = showAll || sections.includes('trends');
+
+  if (showBottlenecks) {
+    lines.push('BOTTLENECK ANALYSIS');
+    if (analysis.bottlenecks.insufficientData) {
+      lines.push(`  ${analysis.bottlenecks.message}`);
+    } else {
+      lines.push(`  Slowest stage: ${analysis.bottlenecks.bottleneckStage} (${analysis.bottlenecks.percentage}% of pipeline)`);
+      lines.push(`  Average duration: ${formatDuration(analysis.bottlenecks.avgDurationMs)}`);
+      if (analysis.bottlenecks.isBottleneck) {
+        lines.push('  Status: BOTTLENECK DETECTED');
+      }
+      if (analysis.bottlenecks.recommendation) {
+        lines.push(`  Recommendation: ${analysis.bottlenecks.recommendation}`);
+      }
+    }
+    lines.push('');
+  }
+
+  if (showFailures) {
+    lines.push('FAILURE PATTERNS');
+    if (analysis.failures.noFailures) {
+      lines.push(`  ${analysis.failures.message}`);
+    } else {
+      lines.push(`  Most common failure stage: ${analysis.failures.mostCommonStage} (${analysis.failures.failureCount} failures)`);
+      lines.push(`  Overall failure rate: ${analysis.failures.failureRate}%`);
+      if (analysis.failures.repeatedFeatures.length > 0) {
+        lines.push('  Features with repeated failures:');
+        for (const f of analysis.failures.repeatedFeatures) {
+          lines.push(`    - ${f.slug} (${f.count} failures)`);
+        }
+      }
+      if (analysis.failures.recommendation) {
+        lines.push(`  Recommendation: ${analysis.failures.recommendation}`);
+      }
+    }
+    lines.push('');
+  }
+
+  if (showAnomalies) {
+    lines.push('ANOMALY DETECTION');
+    if (analysis.anomalies.insufficientData) {
+      lines.push(`  ${analysis.anomalies.message}`);
+    } else if (analysis.anomalies.noAnomalies) {
+      lines.push(`  ${analysis.anomalies.message}`);
+    } else {
+      lines.push('  Anomalous runs detected:');
+      for (const a of analysis.anomalies.anomalies) {
+        lines.push(`    - ${a.slug}/${a.stage}: ${formatDuration(a.actual)} (expected ~${formatDuration(a.expected)}, ${a.deviation}x stddev)`);
+      }
+      if (analysis.anomalies.recommendation) {
+        lines.push(`  Recommendation: ${analysis.anomalies.recommendation}`);
+      }
+    }
+    lines.push('');
+  }
+
+  if (showTrends) {
+    lines.push('TREND ANALYSIS');
+    if (analysis.trends.insufficientData) {
+      lines.push(`  ${analysis.trends.message}`);
+    } else {
+      const sr = analysis.trends.successRate;
+      const dr = analysis.trends.duration;
+      lines.push(`  Success rate: ${sr.trend} (${sr.change > 0 ? '+' : ''}${sr.change}%)`);
+      lines.push(`  Duration: ${dr.trend} (${dr.change > 0 ? '+' : ''}${dr.change}%)`);
+      if (analysis.trends.recommendation) {
+        lines.push(`  Recommendation: ${analysis.trends.recommendation}`);
+      }
+    }
+    lines.push('');
+  }
+
+  return lines.join('\n');
+}
+
+function formatJsonOutput(analysis, sections) {
+  const showAll = sections.length === 0;
+  const output = {};
+
+  if (showAll || sections.includes('bottlenecks')) {
+    output.bottlenecks = analysis.bottlenecks;
+  }
+  if (showAll || sections.includes('failures')) {
+    output.failures = analysis.failures;
+  }
+  if (showAll || sections.includes('anomalies')) {
+    output.anomalies = analysis.anomalies;
+  }
+  if (showAll || sections.includes('trends')) {
+    output.trends = analysis.trends;
+  }
+
+  return JSON.stringify(output, null, 2);
+}
+
+function displayInsights(options = {}) {
+  const history = readHistoryFile();
+
+  if (history.error === 'corrupted') {
+    console.log("Warning: History file is corrupted. Run 'orchestr8 history clear' to reset.");
+    return;
+  }
+
+  if (!history || history.length === 0) {
+    console.log('No pipeline history found.');
+    return;
+  }
+
+  const analysis = {
+    bottlenecks: analyzeBottlenecks(history),
+    failures: analyzeFailures(history),
+    anomalies: detectAnomalies(history),
+    trends: analyzeTrends(history)
+  };
+
+  const sections = [];
+  if (options.bottlenecks) sections.push('bottlenecks');
+  if (options.failures) sections.push('failures');
+
+  if (options.json) {
+    console.log(formatJsonOutput(analysis, sections));
+  } else {
+    console.log(formatTextOutput(analysis, sections));
+  }
+}
+
+module.exports = {
+  displayInsights,
+  analyzeBottlenecks,
+  analyzeFailures,
+  detectAnomalies,
+  analyzeTrends,
+  calculateMean,
+  calculateStdDev
+};

@@ -6,6 +6,7 @@ const { addSkills, listSkills } = require('../src/skills');
 const { displayQueue, resetQueue } = require('../src/orchestrator');
 const { validate, formatOutput } = require('../src/validate');
 const { displayHistory, showStats, clearHistory } = require('../src/history');
+const { displayInsights } = require('../src/insights');
 
 const args = process.argv.slice(2);
 const command = args[0];
@@ -17,6 +18,9 @@ function parseFlags(args) {
     if (arg === '--all') flags.all = true;
     if (arg === '--stats') flags.stats = true;
     if (arg === '--force') flags.force = true;
+    if (arg === '--bottlenecks') flags.bottlenecks = true;
+    if (arg === '--failures') flags.failures = true;
+    if (arg === '--json') flags.json = true;
   }
   return flags;
 }
@@ -71,6 +75,17 @@ const commands = {
     },
     description: 'View pipeline execution history'
   },
+  insights: {
+    fn: () => {
+      const flags = parseFlags(args);
+      displayInsights({
+        bottlenecks: flags.bottlenecks,
+        failures: flags.failures,
+        json: flags.json
+      });
+    },
+    description: 'Analyze pipeline history for bottlenecks, failures, and trends'
+  },
   help: {
     fn: showHelp,
     description: 'Show this help message'
@@ -95,6 +110,10 @@ Commands:
   history --stats       View aggregate statistics
   history clear         Clear all pipeline history (with confirmation)
   history clear --force Clear all pipeline history (no confirmation)
+  insights              Analyze pipeline for bottlenecks, failures, and trends
+  insights --bottlenecks Show only bottleneck analysis
+  insights --failures   Show only failure patterns
+  insights --json       Output analysis as JSON
   validate              Run pre-flight checks to validate project configuration
   help                  Show this help message
 
