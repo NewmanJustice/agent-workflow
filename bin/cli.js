@@ -4,6 +4,7 @@ const { init } = require('../src/init');
 const { update } = require('../src/update');
 const { addSkills, listSkills } = require('../src/skills');
 const { displayQueue, resetQueue } = require('../src/orchestrator');
+const { validate, formatOutput } = require('../src/validate');
 
 const args = process.argv.slice(2);
 const command = args[0];
@@ -37,6 +38,15 @@ const commands = {
     },
     description: 'Show queue status (use "reset" to clear)'
   },
+  validate: {
+    fn: async () => {
+      const result = await validate();
+      const useColor = process.stdout.isTTY || false;
+      console.log(formatOutput(result, useColor));
+      process.exit(result.exitCode);
+    },
+    description: 'Run pre-flight checks to validate project configuration'
+  },
   help: {
     fn: showHelp,
     description: 'Show this help message'
@@ -56,6 +66,7 @@ Commands:
   skills [agent]        List recommended skills for agents
   queue                 Show current queue state for /implement-feature pipeline
   queue reset           Clear the queue and reset all state
+  validate              Run pre-flight checks to validate project configuration
   help                  Show this help message
 
 Examples:
@@ -66,6 +77,7 @@ Examples:
   npx agent-workflow skills
   npx agent-workflow queue
   npx agent-workflow queue reset
+  npx agent-workflow validate
 `);
 }
 
