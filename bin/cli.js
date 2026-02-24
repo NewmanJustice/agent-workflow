@@ -2,7 +2,6 @@
 
 const { init } = require('../src/init');
 const { update } = require('../src/update');
-const { addSkills, listSkills } = require('../src/skills');
 const { displayQueue, resetQueue } = require('../src/orchestrator');
 const { validate, formatOutput } = require('../src/validate');
 const { displayHistory, showStats, clearHistory } = require('../src/history');
@@ -41,14 +40,6 @@ const commands = {
   update: {
     fn: update,
     description: 'Update agents, templates, and rituals (preserves your content)'
-  },
-  'add-skills': {
-    fn: () => addSkills(subArg || 'all'),
-    description: 'Install recommended skills for an agent (or all)'
-  },
-  skills: {
-    fn: () => listSkills(subArg),
-    description: 'List recommended skills for agents'
   },
   queue: {
     fn: () => {
@@ -146,15 +137,14 @@ const commands = {
 
 function showHelp() {
   console.log(`
-agent-workflow - Multi-agent workflow framework
+orchestr8 - Multi-agent workflow framework
 
-Usage: agent-workflow <command> [options]
+Usage: orchestr8 <command> [options]
 
 Commands:
   init                  Initialize .blueprint directory in current project
   update                Update agents, templates, and rituals (preserves your content)
-  add-skills [agent]    Install recommended skills for an agent (alex, cass, nigel, codey, all)
-  skills [agent]        List recommended skills for agents
+  validate              Run pre-flight checks to validate project configuration
   queue                 Show current queue state for /implement-feature pipeline
   queue reset           Clear the queue and reset all state
   history               View recent pipeline runs (last 10 by default)
@@ -173,23 +163,17 @@ Commands:
   feedback-config       View current feedback loop configuration
   feedback-config set <key> <value>  Modify a config value (minRatingThreshold, enabled)
   feedback-config reset Reset feedback configuration to defaults
-  validate              Run pre-flight checks to validate project configuration
   help                  Show this help message
 
 Examples:
-  npx agent-workflow init
-  npx agent-workflow update
-  npx agent-workflow add-skills all
-  npx agent-workflow add-skills codey
-  npx agent-workflow skills
-  npx agent-workflow queue
-  npx agent-workflow queue reset
-  npx agent-workflow history
-  npx agent-workflow history --stats
-  npx agent-workflow history clear --force
-  npx agent-workflow insights --feedback
-  npx agent-workflow feedback-config
-  npx agent-workflow validate
+  npx orchestr8 init
+  npx orchestr8 update
+  npx orchestr8 validate
+  npx orchestr8 queue
+  npx orchestr8 history
+  npx orchestr8 history --stats
+  npx orchestr8 insights --feedback
+  npx orchestr8 feedback-config
 `);
 }
 

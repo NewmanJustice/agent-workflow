@@ -1,7 +1,6 @@
 const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
-const { addSkills } = require('./skills');
 
 const PACKAGE_ROOT = path.resolve(__dirname, '..');
 const TARGET_DIR = process.cwd();
@@ -109,10 +108,6 @@ async function init() {
 
   // Update .gitignore
   updateGitignore();
-
-  // Install agent skills
-  console.log('\nInstalling agent skills...');
-  await addSkills('all');
 
   console.log(`
 orchestr8 initialized successfully!

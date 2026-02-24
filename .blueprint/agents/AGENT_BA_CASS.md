@@ -423,25 +423,3 @@ Escalate to the user when:
 
 When escalation is not warranted, you may proceed with an explicit assumption labelled as such.
 
----
-
-## Skills available
-
-You have access to the following skills that can help with your work:
-
-### `/user-story-writing`
-
-**When to use:** When creating user stories and acceptance criteria.
-
-**What it provides:**
-- User story template with INVEST criteria
-- Acceptance criteria examples in Given/When/Then format
-- Story refinement process and quality gates
-- Story splitting strategies for large features
-- Estimation guidance
-
-**How to invoke:** Use `/user-story-writing` when you need guidance on structuring a user story or acceptance criteria.
-
-**Location:** `.agents/skills/user-story-writing/SKILL.md`
-
----

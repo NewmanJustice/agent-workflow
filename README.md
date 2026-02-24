@@ -53,13 +53,6 @@ This installs the `.blueprint/` directory, `.business_context/`, and the `/imple
 | `npx orchestr8 feedback-config` | View feedback thresholds |
 | `npx orchestr8 feedback-config set <key> <value>` | Modify feedback settings |
 
-### Skills
-
-| Command | Description |
-|---------|-------------|
-| `npx orchestr8 add-skills [agent]` | Install recommended skills for an agent (alex, cass, nigel, codey, all) |
-| `npx orchestr8 skills [agent]` | List recommended skills |
-
 ## Usage
 
 Run the pipeline with the `/implement-feature` skill in Claude Code:
@@ -237,22 +230,6 @@ $ npx orchestr8 insights
 ### Trends
 - Success rate: 75% → 85% (improving)
 - Avg duration: 14 min → 11 min (improving)
-```
-
-## Optional Skills
-
-Each agent has recommended skills from the [skills.sh](https://skills.sh) ecosystem:
-
-| Agent | Skills |
-|-------|--------|
-| **Alex** | `avoid-feature-creep`, `feature-spec` |
-| **Cass** | `user-story-writing` |
-| **Nigel** | `javascript-testing-patterns`, `modern-javascript-patterns` |
-| **Codey** | `javascript-expert`, `modern-javascript-patterns` |
-
-```bash
-npx orchestr8 add-skills all     # Install all recommended skills
-npx orchestr8 add-skills codey   # Install skills for Codey only
 ```
 
 ## License
