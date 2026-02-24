@@ -20,7 +20,7 @@
   "author": "NewmanJustice",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/NewmanJustice/agent-workflow.git"
+    "url": "git+https://github.com/NewmanJustice/orchestr8.git"
   },
   "license": "MIT",
   "engines": {
