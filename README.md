@@ -19,6 +19,18 @@ npx orchestr8 init
 
 This installs the `.blueprint/` directory, `.business_context/`, and the `/implement-feature` skill to `.claude/commands/`. If files already exist, you'll be prompted before overwriting. It also adds the workflow queue to `.gitignore`.
 
+## Keeping Up to Date
+
+**Modules** (history, insights, feedback, retry, validate) are part of the npm package and update automatically when you use `npx` - no action needed.
+
+**Project files** (agent specs, templates, skill definition) are copied to your project and need explicit updating:
+
+```bash
+npx orchestr8 update
+```
+
+This updates `.blueprint/agents/`, `.blueprint/templates/`, `.blueprint/ways_of_working/`, and `.claude/commands/implement-feature.md` while preserving your content in `features/` and `system_specification/`.
+
 ## Commands
 
 ### Core Commands
