@@ -34,6 +34,13 @@ const {
   getHandoffPath,
   getHandoffTemplate
 } = require('./handoff');
+const {
+  needsBusinessContext,
+  parseIncludeBusinessContextFlag,
+  shouldIncludeBusinessContext,
+  buildQueueState,
+  generateBusinessContextDirective
+} = require('./business-context');
 
 module.exports = {
   init,
@@ -73,5 +80,11 @@ module.exports = {
   extractFilePaths,
   validateHandoffSummary,
   getHandoffPath,
-  getHandoffTemplate
+  getHandoffTemplate,
+  // Business context exports
+  needsBusinessContext,
+  parseIncludeBusinessContextFlag,
+  shouldIncludeBusinessContext,
+  buildQueueState,
+  generateBusinessContextDirective
 };
