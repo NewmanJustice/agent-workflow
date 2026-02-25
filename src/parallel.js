@@ -15,6 +15,9 @@ let isAborting = false;
 function getDefaultParallelConfig() {
   return {
     maxConcurrency: 3,
+    maxFeatures: 10,
+    timeout: 30,  // minutes per pipeline
+    minDiskSpaceMB: 500,
     cli: 'npx claude',
     skill: '/implement-feature',
     skillFlags: '--no-commit',
@@ -364,6 +367,55 @@ function getLockInfo() {
   }
 }
 
+// --- Feature Limit ---
+
+function validateFeatureLimit(slugs) {
+  const config = readParallelConfig();
+  if (slugs.length > config.maxFeatures) {
+    return {
+      valid: false,
+      error: `Too many features: ${slugs.length} requested, max is ${config.maxFeatures}`,
+      requested: slugs.length,
+      max: config.maxFeatures
+    };
+  }
+  return { valid: true };
+}
+
+// --- Disk Space Check ---
+
+function checkDiskSpace() {
+  const config = readParallelConfig();
+  try {
+    // Get available space on current filesystem
+    const output = execSync('df -m . | tail -1', { encoding: 'utf8' });
+    const parts = output.trim().split(/\s+/);
+    const availableMB = parseInt(parts[3], 10);
+
+    return {
+      availableMB,
+      requiredMB: config.minDiskSpaceMB,
+      sufficient: availableMB >= config.minDiskSpaceMB
+    };
+  } catch {
+    // Can't check disk space, assume it's fine
+    return { availableMB: -1, requiredMB: config.minDiskSpaceMB, sufficient: true };
+  }
+}
+
+function validateDiskSpace() {
+  const space = checkDiskSpace();
+  if (!space.sufficient && space.availableMB > 0) {
+    return {
+      valid: false,
+      error: `Low disk space: ${space.availableMB}MB available, ${space.requiredMB}MB recommended`,
+      availableMB: space.availableMB,
+      requiredMB: space.requiredMB
+    };
+  }
+  return { valid: true, availableMB: space.availableMB };
+}
+
 // --- Logging ---
 
 function createLogStream(slug, config) {
@@ -391,6 +443,34 @@ function logWithTimestamp(stream, prefix, data) {
       stream.write(`[${timestamp}] [${prefix}] ${line}\n`);
     }
   });
+}
+
+// --- Timeout ---
+
+function withTimeout(promise, timeoutMs, slug) {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => {
+      resolve({
+        slug,
+        success: false,
+        timedOut: true,
+        error: `Pipeline timed out after ${timeoutMs / 60000} minutes`
+      });
+    }, timeoutMs);
+
+    promise.then((result) => {
+      clearTimeout(timer);
+      resolve(result);
+    }).catch((err) => {
+      clearTimeout(timer);
+      resolve({ slug, success: false, error: err.message });
+    });
+  });
+}
+
+function getTimeoutMs() {
+  const config = readParallelConfig();
+  return config.timeout * 60 * 1000; // Convert minutes to ms
 }
 
 // --- Abort Handling ---
@@ -585,6 +665,9 @@ function dryRun(slugs, config, baseBranch, gitStatus, validation) {
 
   console.log(`\nConfiguration:`);
   console.log(`  Max concurrency: ${config.maxConcurrency}`);
+  console.log(`  Max features: ${parallelCfg.maxFeatures}`);
+  console.log(`  Timeout: ${parallelCfg.timeout} min per pipeline`);
+  console.log(`  Min disk space: ${parallelCfg.minDiskSpaceMB} MB`);
   console.log(`  CLI: ${parallelCfg.cli}`);
   console.log(`  Skill: ${parallelCfg.skill}`);
   console.log(`  Flags: ${parallelCfg.skillFlags || '(none)'}`);
@@ -638,6 +721,25 @@ async function runParallel(slugs, options = {}) {
     console.error('Pre-flight validation failed:');
     validation.errors.forEach(e => console.error(`  - ${e}`));
     return { success: false, errors: validation.errors };
+  }
+
+  // Check feature limit
+  const limitCheck = validateFeatureLimit(slugs);
+  if (!limitCheck.valid) {
+    console.error(`\nError: ${limitCheck.error}`);
+    console.error(`\nTo increase limit: orchestr8 parallel-config set maxFeatures <N>\n`);
+    return { success: false, error: 'feature-limit-exceeded' };
+  }
+
+  // Check disk space (warn but don't block unless --strict)
+  const diskCheck = validateDiskSpace();
+  if (!diskCheck.valid) {
+    console.warn(`\nWarning: ${diskCheck.error}`);
+    if (options.strict) {
+      console.error('Use --skip-disk-check to proceed anyway.\n');
+      return { success: false, error: 'low-disk-space' };
+    }
+    console.warn('Proceeding anyway...\n');
   }
 
   // Check lock (unless forcing)
@@ -749,7 +851,12 @@ async function runParallel(slugs, options = {}) {
         }
       } else {
         feature.status = 'parallel_failed';
-        console.log(`[${timestamp}] ${result.slug}: Failed ✗ (see log: ${feature.logPath})`);
+        if (result.timedOut) {
+          console.log(`[${timestamp}] ${result.slug}: Timed out ⏱ (see log: ${feature.logPath})`);
+          feature.timedOut = true;
+        } else {
+          console.log(`[${timestamp}] ${result.slug}: Failed ✗ (see log: ${feature.logPath})`);
+        }
         // Preserve worktree for debugging
       }
 
@@ -814,11 +921,14 @@ async function startFeature(slug, queue, running, options = {}) {
 
   saveQueue(queue);
 
-  console.log(`[${new Date().toISOString().slice(11, 19)}] ${slug}: Started (log: ${feature.logPath})`);
+  const timeoutMs = getTimeoutMs();
+  const timeoutMin = timeoutMs / 60000;
+  console.log(`[${new Date().toISOString().slice(11, 19)}] ${slug}: Started (log: ${feature.logPath}, timeout: ${timeoutMin}min)`);
   feature.status = 'parallel_running';
   saveQueue(queue);
 
-  const promise = runPipelineInWorktree(slug, worktreePath, parallelCfg, options);
+  const pipelinePromise = runPipelineInWorktree(slug, worktreePath, parallelCfg, options);
+  const promise = withTimeout(pipelinePromise, timeoutMs, slug);
   running.set(slug, promise);
 }
 
@@ -884,6 +994,14 @@ module.exports = {
   // Logging
   createLogStream,
   logWithTimestamp,
+  // Feature limit
+  validateFeatureLimit,
+  // Disk space
+  checkDiskSpace,
+  validateDiskSpace,
+  // Timeout
+  withTimeout,
+  getTimeoutMs,
   // Abort handling
   abortParallel,
   setupAbortHandler,

@@ -469,4 +469,81 @@ describe('parallel-features', () => {
       assert.strictEqual(typeof parallel.setupAbortHandler, 'function');
     });
   });
+
+  describe('feature limit safeguard (P1)', () => {
+    it('T-FL-1.1: validateFeatureLimit passes for small batches', () => {
+      if (!parallel) return;
+      const result = parallel.validateFeatureLimit(['a', 'b', 'c']);
+      assert.strictEqual(result.valid, true);
+    });
+
+    it('T-FL-1.2: validateFeatureLimit fails for large batches', () => {
+      if (!parallel) return;
+      const manyFeatures = Array.from({ length: 15 }, (_, i) => `feat-${i}`);
+      const result = parallel.validateFeatureLimit(manyFeatures);
+      assert.strictEqual(result.valid, false);
+      assert.ok(result.error.includes('Too many features'));
+    });
+
+    it('T-FL-1.3: default maxFeatures is 10', () => {
+      if (!parallel) return;
+      const config = parallel.getDefaultParallelConfig();
+      assert.strictEqual(config.maxFeatures, 10);
+    });
+  });
+
+  describe('disk space safeguard (P1)', () => {
+    it('T-DS-1.1: checkDiskSpace returns object with availableMB', () => {
+      if (!parallel) return;
+      const result = parallel.checkDiskSpace();
+      assert.strictEqual(typeof result.availableMB, 'number');
+      assert.strictEqual(typeof result.sufficient, 'boolean');
+    });
+
+    it('T-DS-1.2: validateDiskSpace returns valid property', () => {
+      if (!parallel) return;
+      const result = parallel.validateDiskSpace();
+      assert.strictEqual(typeof result.valid, 'boolean');
+    });
+
+    it('T-DS-1.3: default minDiskSpaceMB is 500', () => {
+      if (!parallel) return;
+      const config = parallel.getDefaultParallelConfig();
+      assert.strictEqual(config.minDiskSpaceMB, 500);
+    });
+  });
+
+  describe('timeout safeguard (P1)', () => {
+    it('T-TO-1.1: getTimeoutMs returns number', () => {
+      if (!parallel) return;
+      const timeout = parallel.getTimeoutMs();
+      assert.strictEqual(typeof timeout, 'number');
+      assert.ok(timeout > 0);
+    });
+
+    it('T-TO-1.2: default timeout is 30 minutes', () => {
+      if (!parallel) return;
+      const config = parallel.getDefaultParallelConfig();
+      assert.strictEqual(config.timeout, 30);
+    });
+
+    it('T-TO-1.3: getTimeoutMs converts minutes to milliseconds', () => {
+      if (!parallel) return;
+      const config = parallel.getDefaultParallelConfig();
+      const timeoutMs = parallel.getTimeoutMs();
+      assert.strictEqual(timeoutMs, config.timeout * 60 * 1000);
+    });
+
+    it('T-TO-1.4: withTimeout is exported', () => {
+      if (!parallel) return;
+      assert.strictEqual(typeof parallel.withTimeout, 'function');
+    });
+
+    it('T-TO-1.5: withTimeout resolves when promise completes before timeout', async () => {
+      if (!parallel) return;
+      const fastPromise = Promise.resolve({ slug: 'test', success: true });
+      const result = await parallel.withTimeout(fastPromise, 5000, 'test');
+      assert.strictEqual(result.success, true);
+    });
+  });
 });

@@ -171,6 +171,9 @@ const commands = {
         console.log(`  skillFlags:     ${config.skillFlags}`);
         console.log(`  worktreeDir:    ${config.worktreeDir}`);
         console.log(`  maxConcurrency: ${config.maxConcurrency}`);
+        console.log(`  maxFeatures:    ${config.maxFeatures}`);
+        console.log(`  timeout:        ${config.timeout} min`);
+        console.log(`  minDiskSpaceMB: ${config.minDiskSpaceMB}`);
         console.log(`  queueFile:      ${config.queueFile}`);
         console.log('\nTo change: orchestr8 parallel-config set <key> <value>');
       }
