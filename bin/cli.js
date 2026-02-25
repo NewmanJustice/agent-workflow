@@ -24,7 +24,10 @@ const {
   writeParallelConfig,
   getDefaultParallelConfig,
   abortParallel,
-  getLockInfo
+  getLockInfo,
+  getDetailedStatus,
+  formatDetailedStatus,
+  rollbackParallel
 } = require('../src/parallel');
 
 const args = process.argv.slice(2);
@@ -183,39 +186,52 @@ const commands = {
   parallel: {
     fn: async () => {
       if (subArg === 'status') {
-        const queue = loadQueue();
+        const detailed = args.includes('--detailed') || args.includes('-d');
         const lock = getLockInfo();
 
-        if (!queue.features || queue.features.length === 0) {
-          if (lock) {
-            console.log(`Parallel execution in progress (PID: ${lock.pid})`);
-            console.log(`Started: ${lock.startedAt}`);
-            console.log(`Features: ${lock.features.join(', ')}`);
-          } else {
-            console.log('No parallel pipelines active.');
+        if (detailed) {
+          const details = getDetailedStatus();
+          console.log(formatDetailedStatus(details));
+        } else {
+          const queue = loadQueue();
+
+          if (!queue.features || queue.features.length === 0) {
+            if (lock) {
+              console.log(`Parallel execution in progress (PID: ${lock.pid})`);
+              console.log(`Started: ${lock.startedAt}`);
+              console.log(`Features: ${lock.features.join(', ')}`);
+            } else {
+              console.log('No parallel pipelines active.');
+            }
+            return;
           }
-          return;
-        }
 
-        console.log('Parallel Pipeline Status\n');
-        console.log(formatStatus(queue.features));
-        const summary = {
-          running: queue.features.filter(f => f.status === 'parallel_running').length,
-          pending: queue.features.filter(f => f.status === 'parallel_queued').length,
-          completed: queue.features.filter(f => f.status === 'parallel_complete').length,
-          failed: queue.features.filter(f => f.status === 'parallel_failed').length,
-          conflicts: queue.features.filter(f => f.status === 'merge_conflict').length
-        };
-        console.log(`\nRunning: ${summary.running} | Pending: ${summary.pending} | Completed: ${summary.completed} | Failed: ${summary.failed} | Conflicts: ${summary.conflicts}`);
+          console.log('Parallel Pipeline Status\n');
+          console.log(formatStatus(queue.features));
+          const summary = {
+            running: queue.features.filter(f => f.status === 'parallel_running').length,
+            pending: queue.features.filter(f => f.status === 'parallel_queued').length,
+            completed: queue.features.filter(f => f.status === 'parallel_complete').length,
+            failed: queue.features.filter(f => f.status === 'parallel_failed').length,
+            conflicts: queue.features.filter(f => f.status === 'merge_conflict').length
+          };
+          console.log(`\nRunning: ${summary.running} | Pending: ${summary.pending} | Completed: ${summary.completed} | Failed: ${summary.failed} | Conflicts: ${summary.conflicts}`);
 
-        // Show log paths for running/failed
-        const withLogs = queue.features.filter(f =>
-          f.logPath && (f.status === 'parallel_running' || f.status === 'parallel_failed')
-        );
-        if (withLogs.length > 0) {
-          console.log('\nLog files:');
-          withLogs.forEach(f => console.log(`  ${f.slug}: ${f.logPath}`));
+          // Show log paths for running/failed
+          const withLogs = queue.features.filter(f =>
+            f.logPath && (f.status === 'parallel_running' || f.status === 'parallel_failed')
+          );
+          if (withLogs.length > 0) {
+            console.log('\nLog files:');
+            withLogs.forEach(f => console.log(`  ${f.slug}: ${f.logPath}`));
+          }
+
+          console.log('\nTip: Use --detailed for progress bars');
         }
+      } else if (subArg === 'rollback') {
+        const dryRunFlag = args.includes('--dry-run');
+        const forceFlag = args.includes('--force');
+        await rollbackParallel({ dryRun: dryRunFlag, force: forceFlag });
       } else if (subArg === 'cleanup') {
         const cleaned = await cleanupWorktrees();
         console.log(`Cleaned ${cleaned} worktree(s).`);
@@ -294,8 +310,11 @@ Commands:
   parallel <slugs...> --yes      Skip confirmation prompt
   parallel <slugs...> --verbose  Stream output to console
   parallel status       Show status of all parallel pipelines
+  parallel status --detailed  Show progress bars and stage info
   parallel abort        Stop all running pipelines
   parallel abort --cleanup  Stop all and remove worktrees
+  parallel rollback     Undo completed merges and cleanup failures
+  parallel rollback --dry-run  Preview what would be rolled back
   parallel cleanup      Remove completed/aborted worktrees
   parallel-config       View parallel pipeline configuration
   parallel-config set <key> <value>  Modify config (cli, skill, skillFlags, etc.)

@@ -473,6 +473,110 @@ function getTimeoutMs() {
   return config.timeout * 60 * 1000; // Convert minutes to ms
 }
 
+// --- Progress Tracking ---
+
+function getProgressFromLog(logPath) {
+  if (!fs.existsSync(logPath)) {
+    return { stage: 'starting', percent: 0 };
+  }
+
+  try {
+    const content = fs.readFileSync(logPath, 'utf8');
+    const lines = content.toLowerCase();
+
+    // Detect stage based on log content
+    if (lines.includes('codey') && lines.includes('implement')) {
+      return { stage: 'codey-implement', percent: 90 };
+    }
+    if (lines.includes('codey') && lines.includes('plan')) {
+      return { stage: 'codey-plan', percent: 75 };
+    }
+    if (lines.includes('nigel')) {
+      return { stage: 'nigel', percent: 50 };
+    }
+    if (lines.includes('cass')) {
+      return { stage: 'cass', percent: 35 };
+    }
+    if (lines.includes('alex')) {
+      return { stage: 'alex', percent: 20 };
+    }
+
+    return { stage: 'running', percent: 10 };
+  } catch {
+    return { stage: 'unknown', percent: 0 };
+  }
+}
+
+function getDetailedStatus() {
+  const queue = loadQueue();
+  if (!queue.features || queue.features.length === 0) {
+    return { active: false, features: [] };
+  }
+
+  const features = queue.features.map(f => {
+    const progress = f.logPath ? getProgressFromLog(f.logPath) : { stage: 'pending', percent: 0 };
+    const elapsed = f.startedAt
+      ? Math.round((Date.now() - new Date(f.startedAt).getTime()) / 1000)
+      : 0;
+
+    return {
+      slug: f.slug,
+      status: f.status,
+      stage: progress.stage,
+      percent: progress.percent,
+      elapsedSeconds: elapsed,
+      logPath: f.logPath,
+      worktreePath: f.worktreePath,
+      branchName: f.branchName
+    };
+  });
+
+  return {
+    active: features.some(f => f.status === 'parallel_running'),
+    features
+  };
+}
+
+function formatDetailedStatus(details) {
+  if (!details.active && details.features.length === 0) {
+    return 'No parallel pipelines active.';
+  }
+
+  let output = 'Parallel Pipeline Status\n\n';
+
+  for (const f of details.features) {
+    const statusIcon = {
+      'parallel_queued': '⏳',
+      'worktree_created': '📁',
+      'parallel_running': '🔄',
+      'merge_pending': '🔀',
+      'parallel_complete': '✅',
+      'parallel_failed': '❌',
+      'merge_conflict': '⚠️',
+      'aborted': '🛑'
+    }[f.status] || '❓';
+
+    const elapsed = f.elapsedSeconds > 0
+      ? ` (${Math.floor(f.elapsedSeconds / 60)}m ${f.elapsedSeconds % 60}s)`
+      : '';
+
+    output += `${statusIcon} ${f.slug}${elapsed}\n`;
+
+    if (f.status === 'parallel_running') {
+      const bar = progressBar(f.percent);
+      output += `   ${bar} ${f.percent}% - ${f.stage}\n`;
+    }
+  }
+
+  return output;
+}
+
+function progressBar(percent, width = 20) {
+  const filled = Math.round((percent / 100) * width);
+  const empty = width - filled;
+  return '[' + '█'.repeat(filled) + '░'.repeat(empty) + ']';
+}
+
 // --- Abort Handling ---
 
 function setupAbortHandler(queue) {
@@ -932,6 +1036,97 @@ async function startFeature(slug, queue, running, options = {}) {
   running.set(slug, promise);
 }
 
+// --- Rollback ---
+
+async function rollbackParallel(options = {}) {
+  const queue = loadQueue();
+
+  if (!queue.features || queue.features.length === 0) {
+    console.log('No parallel run to rollback.');
+    return { success: true, rolledBack: 0 };
+  }
+
+  const completedFeatures = queue.features.filter(f => f.status === 'parallel_complete');
+  const failedFeatures = queue.features.filter(f =>
+    f.status === 'parallel_failed' || f.status === 'merge_conflict'
+  );
+
+  if (completedFeatures.length === 0 && failedFeatures.length === 0) {
+    console.log('No completed or failed features to rollback.');
+    return { success: true, rolledBack: 0 };
+  }
+
+  console.log('\nParallel Run Rollback\n');
+
+  if (options.dryRun) {
+    console.log('DRY RUN - No changes will be made\n');
+  }
+
+  let rolledBack = 0;
+
+  // Rollback completed features (revert merges)
+  for (const f of completedFeatures) {
+    console.log(`Rolling back ${f.slug}...`);
+    if (!options.dryRun) {
+      try {
+        // Find and revert the merge commit
+        const branchName = f.branchName || `feature/${f.slug}`;
+        const logOutput = execSync(
+          `git log --oneline --grep="${f.slug}" -n 1`,
+          { encoding: 'utf8' }
+        ).trim();
+
+        if (logOutput) {
+          const commitHash = logOutput.split(' ')[0];
+          execSync(`git revert --no-commit ${commitHash}`, { stdio: 'pipe' });
+          execSync(`git commit -m "Revert: ${f.slug} (parallel rollback)"`, { stdio: 'pipe' });
+          console.log(`  ✓ Reverted commit ${commitHash}`);
+          rolledBack++;
+        } else {
+          console.log(`  ⚠ Could not find merge commit for ${f.slug}`);
+        }
+      } catch (err) {
+        console.log(`  ✗ Failed to rollback: ${err.message}`);
+        if (!options.force) {
+          execSync('git revert --abort', { stdio: 'pipe' }).catch(() => {});
+        }
+      }
+    } else {
+      console.log(`  Would revert merge for ${f.slug}`);
+      rolledBack++;
+    }
+  }
+
+  // Clean up failed/conflict worktrees
+  for (const f of failedFeatures) {
+    if (f.worktreePath) {
+      console.log(`Cleaning up ${f.slug}...`);
+      if (!options.dryRun) {
+        try {
+          removeWorktree(f.slug);
+          console.log(`  ✓ Removed worktree`);
+          rolledBack++;
+        } catch {
+          console.log(`  ⚠ Could not remove worktree`);
+        }
+      } else {
+        console.log(`  Would remove worktree: ${f.worktreePath}`);
+        rolledBack++;
+      }
+    }
+  }
+
+  // Clear the queue
+  if (!options.dryRun && !options.preserveQueue) {
+    saveQueue({ features: [], startedAt: null });
+    console.log('\n✓ Queue cleared');
+  }
+
+  console.log(`\nRollback complete: ${rolledBack} item(s) processed`);
+
+  return { success: true, rolledBack };
+}
+
 async function cleanupWorktrees() {
   const queue = loadQueue();
   let cleaned = 0;
@@ -1002,9 +1197,16 @@ module.exports = {
   // Timeout
   withTimeout,
   getTimeoutMs,
+  // Progress tracking
+  getProgressFromLog,
+  getDetailedStatus,
+  formatDetailedStatus,
+  progressBar,
   // Abort handling
   abortParallel,
   setupAbortHandler,
+  // Rollback
+  rollbackParallel,
   // Git operations
   checkGitStatus,
   createWorktree,

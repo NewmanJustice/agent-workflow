@@ -546,4 +546,71 @@ describe('parallel-features', () => {
       assert.strictEqual(result.success, true);
     });
   });
+
+  describe('progress tracking (P2)', () => {
+    it('T-PR-1.1: getProgressFromLog returns stage and percent', () => {
+      if (!parallel) return;
+      const result = parallel.getProgressFromLog('/nonexistent/path');
+      assert.strictEqual(typeof result.stage, 'string');
+      assert.strictEqual(typeof result.percent, 'number');
+    });
+
+    it('T-PR-1.2: getDetailedStatus returns object with features array', () => {
+      if (!parallel) return;
+      const result = parallel.getDetailedStatus();
+      assert.strictEqual(typeof result.active, 'boolean');
+      assert.ok(Array.isArray(result.features));
+    });
+
+    it('T-PR-1.3: formatDetailedStatus returns string', () => {
+      if (!parallel) return;
+      const details = { active: false, features: [] };
+      const result = parallel.formatDetailedStatus(details);
+      assert.strictEqual(typeof result, 'string');
+    });
+
+    it('T-PR-1.4: progressBar generates visual bar', () => {
+      if (!parallel) return;
+      const bar = parallel.progressBar(50, 10);
+      assert.ok(bar.includes('['));
+      assert.ok(bar.includes(']'));
+      assert.ok(bar.includes('█'));
+      assert.ok(bar.includes('░'));
+    });
+
+    it('T-PR-1.5: progressBar handles 0%', () => {
+      if (!parallel) return;
+      const bar = parallel.progressBar(0, 10);
+      assert.ok(bar.includes('░'.repeat(10)));
+    });
+
+    it('T-PR-1.6: progressBar handles 100%', () => {
+      if (!parallel) return;
+      const bar = parallel.progressBar(100, 10);
+      assert.ok(bar.includes('█'.repeat(10)));
+    });
+  });
+
+  describe('rollback (P3)', () => {
+    it('T-RB-1.1: rollbackParallel is async function', () => {
+      if (!parallel) return;
+      assert.strictEqual(typeof parallel.rollbackParallel, 'function');
+    });
+
+    it('T-RB-1.2: rollbackParallel returns object with success property', async () => {
+      if (!parallel) return;
+      // Clear any existing queue first
+      parallel.saveQueue({ features: [], startedAt: null });
+      const result = await parallel.rollbackParallel({ dryRun: true });
+      assert.strictEqual(typeof result.success, 'boolean');
+    });
+
+    it('T-RB-1.3: rollbackParallel handles empty queue', async () => {
+      if (!parallel) return;
+      parallel.saveQueue({ features: [], startedAt: null });
+      const result = await parallel.rollbackParallel();
+      assert.strictEqual(result.success, true);
+      assert.strictEqual(result.rolledBack, 0);
+    });
+  });
 });
