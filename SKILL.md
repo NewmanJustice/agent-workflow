@@ -231,13 +231,9 @@ Unless `--no-feedback` flag is set, collect feedback before Cass writes stories:
 
 **Prompt addition to Cass:**
 ```
-FIRST, before writing stories, evaluate Alex's feature spec:
-- Rating (1-5): How clear and complete is the spec?
-- Issues: List any problems (e.g., "missing-error-handling", "unclear-scope")
-- Recommendation: "proceed" | "pause" | "revise"
-
-Output your feedback as:
-FEEDBACK: { "rating": N, "issues": [...], "recommendation": "..." }
+FEEDBACK FIRST: Rate Alex's spec 1-5, list issues (e.g., unclear-scope), recommend proceed|pause|revise.
+Format: FEEDBACK: {"rating":N,"issues":["..."],"rec":"proceed|pause|revise"}
+Then continue with your task.
 ```
 
 **Quality Gate Check:**
@@ -336,13 +332,9 @@ Unless `--no-feedback` flag is set:
 
 **Prompt addition to Nigel:**
 ```
-FIRST, before writing tests, evaluate Cass's user stories:
-- Rating (1-5): How testable are the stories?
-- Issues: List any problems (e.g., "ambiguous-ac", "missing-edge-cases")
-- Recommendation: "proceed" | "pause" | "revise"
-
-Output your feedback as:
-FEEDBACK: { "rating": N, "issues": [...], "recommendation": "..." }
+FEEDBACK FIRST: Rate Cass's stories 1-5, list issues (e.g., ambiguous-ac), recommend proceed|pause|revise.
+Format: FEEDBACK: {"rating":N,"issues":["..."],"rec":"proceed|pause|revise"}
+Then continue with your task.
 ```
 
 **Quality Gate Check:** Same as Step 6.5
@@ -441,13 +433,9 @@ Unless `--no-feedback` flag is set:
 
 **Prompt addition to Codey (Plan phase):**
 ```
-FIRST, before creating the plan, evaluate Nigel's tests:
-- Rating (1-5): How implementable are the tests?
-- Issues: List any problems (e.g., "over-mocked", "missing-setup")
-- Recommendation: "proceed" | "pause" | "revise"
-
-Output your feedback as:
-FEEDBACK: { "rating": N, "issues": [...], "recommendation": "..." }
+FEEDBACK FIRST: Rate Nigel's tests 1-5, list issues (e.g., over-mocked), recommend proceed|pause|revise.
+Format: FEEDBACK: {"rating":N,"issues":["..."],"rec":"proceed|pause|revise"}
+Then continue with your task.
 ```
 
 **Quality Gate Check:** Same as Step 6.5

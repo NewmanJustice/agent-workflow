@@ -4,6 +4,36 @@ const path = require('path');
 const CONFIG_FILE = '.claude/feedback-config.json';
 
 /**
+ * Normalizes abbreviated keys to full names.
+ * Converts "rec" to "recommendation" while preserving existing full key.
+ * @param {Object} feedback - Raw feedback object
+ * @returns {Object} - Normalized feedback object
+ */
+function normalizeFeedbackKeys(feedback) {
+  const normalized = { ...feedback };
+  if ('rec' in normalized && !('recommendation' in normalized)) {
+    normalized.recommendation = normalized.rec;
+    delete normalized.rec;
+  }
+  return normalized;
+}
+
+/**
+ * Parses FEEDBACK: JSON from agent output text.
+ * @param {string} output - Raw agent output
+ * @returns {Object|null} - Parsed feedback or null if not found/invalid
+ */
+function parseFeedbackFromOutput(output) {
+  const match = output.match(/FEEDBACK:\s*(\{[^}]+\})/);
+  if (!match) return null;
+  try {
+    return JSON.parse(match[1]);
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Returns the default feedback configuration.
  * Per FEATURE_SPEC.md defaults.
  */
@@ -60,34 +90,32 @@ function writeConfig(config) {
 /**
  * Validates a feedback object against the schema.
  * Per FEATURE_SPEC.md:Rule 1.
+ * Accepts both "rec" and "recommendation" keys for recommendation field.
  * @param {object} feedback - Feedback object to validate
  * @returns {object} { valid: boolean, errors: string[] }
  */
 function validateFeedback(feedback) {
   const errors = [];
 
-  if (!['alex', 'cass', 'nigel'].includes(feedback.about)) {
-    errors.push('Invalid "about" field');
+  // Rating validation
+  if (typeof feedback.rating !== 'number' || !Number.isInteger(feedback.rating)) {
+    errors.push('rating must be an integer');
+  } else if (feedback.rating < 1 || feedback.rating > 5) {
+    errors.push('rating must be between 1 and 5');
   }
 
-  if (typeof feedback.rating !== 'number' ||
-      feedback.rating < 1 ||
-      feedback.rating > 5) {
-    errors.push('Invalid "rating" field');
-  }
-
-  if (typeof feedback.confidence !== 'number' ||
-      feedback.confidence < 0 ||
-      feedback.confidence > 1) {
-    errors.push('Invalid "confidence" field');
-  }
-
+  // Issues validation
   if (!Array.isArray(feedback.issues)) {
-    errors.push('Invalid "issues" field');
+    errors.push('issues must be an array');
+  } else if (!feedback.issues.every(i => typeof i === 'string')) {
+    errors.push('issues must be an array of strings');
   }
 
-  if (!['proceed', 'pause', 'revise'].includes(feedback.recommendation)) {
-    errors.push('Invalid "recommendation" field');
+  // Recommendation validation - accept both "rec" and "recommendation" keys
+  const rec = feedback.recommendation || feedback.rec;
+  const validRecs = ['proceed', 'pause', 'revise'];
+  if (!validRecs.includes(rec)) {
+    errors.push(`recommendation must be one of: ${validRecs.join(', ')}`);
   }
 
   return { valid: errors.length === 0, errors };
@@ -163,6 +191,8 @@ module.exports = {
   getDefaultConfig,
   readConfig,
   writeConfig,
+  normalizeFeedbackKeys,
+  parseFeedbackFromOutput,
   validateFeedback,
   shouldPause,
   setConfigValue,
