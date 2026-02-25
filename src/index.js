@@ -25,6 +25,15 @@ const {
   recommendThreshold,
   displayFeedbackInsights
 } = require('./insights');
+const {
+  parseHandoffSummary,
+  extractSection,
+  countBulletItems,
+  extractFilePaths,
+  validateHandoffSummary,
+  getHandoffPath,
+  getHandoffTemplate
+} = require('./handoff');
 
 module.exports = {
   init,
@@ -56,5 +65,13 @@ module.exports = {
   calculateCalibration,
   correlateIssues,
   recommendThreshold,
-  displayFeedbackInsights
+  displayFeedbackInsights,
+  // Handoff summary exports
+  parseHandoffSummary,
+  extractSection,
+  countBulletItems,
+  extractFilePaths,
+  validateHandoffSummary,
+  getHandoffPath,
+  getHandoffTemplate
 };

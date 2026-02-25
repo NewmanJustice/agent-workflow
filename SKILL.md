@@ -21,6 +21,9 @@ description: Run the Alex → Cass → Nigel → Codey pipeline using Task tool 
 | `{HISTORY}` | `.claude/pipeline-history.json` |
 | `{RETRY_CONFIG}` | `.claude/retry-config.json` |
 | `{FEEDBACK_CONFIG}` | `.claude/feedback-config.json` |
+| `{HANDOFF_ALEX}` | `{FEAT_DIR}/handoff-alex.md` |
+| `{HANDOFF_CASS}` | `{FEAT_DIR}/handoff-cass.md` |
+| `{HANDOFF_NIGEL}` | `{FEAT_DIR}/handoff-nigel.md` |
 
 ## Invocation
 
@@ -171,16 +174,37 @@ Create a feature specification for "{slug}" that translates system intent into a
 - Template: .blueprint/templates/FEATURE_SPEC.md
 - Business Context: .business_context/
 
-## Outputs (write this file)
-Write the feature spec to: {FEAT_DIR}/FEATURE_SPEC.md
+## Outputs (write these files)
+1. Write the feature spec to: {FEAT_DIR}/FEATURE_SPEC.md
+2. Write handoff summary to: {FEAT_DIR}/handoff-alex.md
+
+## Handoff Summary Format
+```markdown
+## Handoff Summary
+**For:** Cass
+**Feature:** {slug}
+
+### Key Decisions
+- (1-5 bullets: key architectural/scope decisions)
+
+### Files Created
+- {FEAT_DIR}/FEATURE_SPEC.md
+
+### Open Questions
+- (List any unresolved questions, or "None")
+
+### Critical Context
+(Brief context Cass needs to write stories effectively)
+```
 
 ## Rules
-- Write file incrementally (section by section if large)
+- Write feature spec FIRST, then write handoff summary
 - Reference system spec by path, do not repeat its content
 - Keep Change Log to 1-2 entries max
 - Flag ambiguities explicitly rather than guessing
 - Ensure feature aligns with system boundaries
 - Make inferred interpretations explicit
+- Handoff summary must be under 30 lines
 
 ## Completion
 Brief summary (5 bullets max): intent, key behaviours, scope, story themes, tensions
@@ -190,7 +214,7 @@ For detailed guidance, see: .blueprint/agents/AGENT_SPECIFICATION_ALEX.md
 ```
 
 **On completion:**
-1. Verify `{FEAT_SPEC}` exists
+1. Verify `{FEAT_SPEC}` and `{FEAT_DIR}/handoff-alex.md` exist
 2. **Record history:** `stages.alex = { completedAt, durationMs, status: "success" }`
 3. Update queue: move feature to `cassQueue`
 4. If `--pause-after=alex`: Show output path, ask user to continue
@@ -242,25 +266,49 @@ You are Cass, the Story Writer Agent.
 Create user stories for feature "{slug}" with explicit, testable acceptance criteria.
 
 ## Inputs (read these files)
-- Feature Spec: {FEAT_DIR}/FEATURE_SPEC.md
+- Handoff Summary: {FEAT_DIR}/handoff-alex.md (read FIRST for quick context)
+- Feature Spec: {FEAT_DIR}/FEATURE_SPEC.md (full details if needed)
 - System Spec: .blueprint/system_specification/SYSTEM_SPEC.md
 
 ## Outputs (write these files)
-Create one markdown file per user story in {FEAT_DIR}/:
-- story-{story-slug}.md (e.g., story-login.md, story-logout.md)
+1. Create one markdown file per user story in {FEAT_DIR}/:
+   - story-{story-slug}.md (e.g., story-login.md, story-logout.md)
+2. Write handoff summary to: {FEAT_DIR}/handoff-cass.md
 
 Each story must include:
 - User story in standard format (As a... I want... so that...)
 - Acceptance criteria (Given/When/Then) - max 5-7 per story
 - Out of scope items (brief list)
 
+## Handoff Summary Format
+```markdown
+## Handoff Summary
+**For:** Nigel
+**Feature:** {slug}
+
+### Key Decisions
+- (1-5 bullets: story structure decisions, AC approach)
+
+### Files Created
+- {FEAT_DIR}/story-*.md (list each file)
+
+### Open Questions
+- (List any unresolved questions, or "None")
+
+### Critical Context
+(Brief context Nigel needs to write tests effectively)
+```
+
 ## Rules
+- Read Alex's handoff summary FIRST for quick orientation
 - Write ONE story file at a time, then move to next
+- Write handoff summary LAST after all stories complete
 - Keep each story focused - split large stories into multiple files
 - Make routing explicit (Previous, Continue, conditional paths)
 - Reference feature spec by path for shared context
 - Do not guess policy detail without flagging assumptions
 - Avoid implicit behaviour - all routes must be explicit
+- Handoff summary must be under 30 lines
 
 ## Completion
 Brief summary: story count, filenames, behaviours covered (5 bullets max)
@@ -271,6 +319,7 @@ For detailed guidance, see: .blueprint/agents/AGENT_BA_CASS.md
 
 **On completion:**
 1. Verify at least one `story-*.md` exists in `{FEAT_DIR}`
+2. Verify `{FEAT_DIR}/handoff-cass.md` exists
 2. **Record history:** `stages.cass = { completedAt, durationMs, status: "success" }`
 3. Update queue: move feature to `nigelQueue`
 4. If `--pause-after=cass`: Show story paths, ask user to continue
@@ -319,8 +368,9 @@ You are Nigel, the Tester Agent.
 Create tests for feature "{slug}" that expose ambiguities and provide a stable contract for implementation.
 
 ## Inputs (read these files)
-- Stories: {FEAT_DIR}/story-*.md
-- Feature Spec: {FEAT_DIR}/FEATURE_SPEC.md
+- Handoff Summary: {FEAT_DIR}/handoff-cass.md (read FIRST for quick context)
+- Stories: {FEAT_DIR}/story-*.md (full details)
+- Feature Spec: {FEAT_DIR}/FEATURE_SPEC.md (if additional context needed)
 
 ## Outputs (write these files IN ORDER)
 
@@ -334,13 +384,37 @@ Step 2: Write {TEST_FILE} containing:
 - One describe block per story
 - One test per acceptance criterion
 
+Step 3: Write handoff summary to: {FEAT_DIR}/handoff-nigel.md
+
+## Handoff Summary Format
+```markdown
+## Handoff Summary
+**For:** Codey
+**Feature:** {slug}
+
+### Key Decisions
+- (1-5 bullets: test approach, mocking strategy, coverage focus)
+
+### Files Created
+- {TEST_DIR}/test-spec.md
+- {TEST_FILE}
+
+### Open Questions
+- (List any unresolved questions, or "None")
+
+### Critical Context
+(Brief context Codey needs to implement effectively)
+```
+
 ## Rules
-- Write test-spec.md FIRST, then write test file
+- Read Cass's handoff summary FIRST for quick orientation
+- Write test-spec.md FIRST, then write test file, then handoff summary LAST
 - Keep test-spec.md under 100 lines using table format
 - Tests should be self-documenting with minimal comments
 - Reference story files by path in test descriptions
 - Make failure states meaningful
 - Focus on externally observable behaviour
+- Handoff summary must be under 30 lines
 
 ## Completion
 Brief summary: test count, AC coverage %, assumptions (5 bullets max)
@@ -350,7 +424,7 @@ For detailed guidance, see: .blueprint/agents/AGENT_TESTER_NIGEL.md
 ```
 
 **On completion:**
-1. Verify `{TEST_SPEC}` and `{TEST_FILE}` exist
+1. Verify `{TEST_SPEC}`, `{TEST_FILE}`, and `{FEAT_DIR}/handoff-nigel.md` exist
 2. **Record history:** `stages.nigel = { completedAt, durationMs, status: "success" }`
 3. Update queue: move feature to `codeyQueue`
 4. If `--pause-after=nigel`: Show test paths, ask user to continue
@@ -399,10 +473,11 @@ You are Codey, the Developer Agent.
 Create an implementation plan for feature "{slug}". Do NOT implement yet - planning only.
 
 ## Inputs (read these files)
-- Feature Spec: {FEAT_DIR}/FEATURE_SPEC.md
-- Stories: {FEAT_DIR}/story-*.md
+- Handoff Summary: {FEAT_DIR}/handoff-nigel.md (read FIRST for quick context)
 - Test Spec: {TEST_DIR}/test-spec.md
 - Tests: {TEST_FILE}
+- Feature Spec: {FEAT_DIR}/FEATURE_SPEC.md (if additional context needed)
+- Stories: {FEAT_DIR}/story-*.md (if additional context needed)
 
 ## Outputs (write this file)
 Write implementation plan to: {FEAT_DIR}/IMPLEMENTATION_PLAN.md
@@ -414,6 +489,7 @@ Plan structure (aim for under 80 lines total):
 - Risks/Questions (bullet list, only if non-obvious)
 
 ## Rules
+- Read Nigel's handoff summary FIRST for quick orientation
 - Do NOT write implementation code in this phase
 - Keep plan concise and actionable
 - Order steps to make tests pass incrementally
@@ -453,12 +529,14 @@ You are Codey, the Developer Agent.
 Implement feature "{slug}" according to the plan. Work incrementally, making tests pass one group at a time.
 
 ## Inputs (read these files)
+- Handoff Summary: {FEAT_DIR}/handoff-nigel.md (read FIRST for quick context)
 - Implementation Plan: {FEAT_DIR}/IMPLEMENTATION_PLAN.md
 - Tests: {TEST_FILE}
 
 ## Process (INCREMENTAL - one file at a time)
-1. Run tests first: node --test {TEST_FILE}
-2. For each failing test group:
+1. Read Nigel's handoff summary for orientation
+2. Run tests first: node --test {TEST_FILE}
+3. For each failing test group:
    a. Identify the minimal code needed
    b. Write or edit ONE file
    c. Run tests again
