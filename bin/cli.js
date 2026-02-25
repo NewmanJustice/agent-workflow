@@ -13,6 +13,7 @@ const {
   resetConfig: resetFeedbackConfig
 } = require('../src/feedback');
 const { displayFeedbackInsights } = require('../src/insights');
+const { formatStatus, getDefaultConfig, splitByLimit } = require('../src/parallel');
 
 const args = process.argv.slice(2);
 const command = args[0];
@@ -129,6 +130,38 @@ const commands = {
     },
     description: 'Manage feedback loop configuration'
   },
+  parallel: {
+    fn: () => {
+      if (subArg === 'status') {
+        const queuePath = '.claude/parallel-queue.json';
+        const fs = require('fs');
+        if (!fs.existsSync(queuePath)) {
+          console.log('No parallel pipelines active.');
+          return;
+        }
+        const states = JSON.parse(fs.readFileSync(queuePath, 'utf8'));
+        console.log(formatStatus(states));
+      } else {
+        const slugs = args.slice(1).filter(a => !a.startsWith('--'));
+        if (slugs.length === 0) {
+          console.error('Usage: parallel <slug1> <slug2> ... [--max-concurrency=N]');
+          process.exit(1);
+        }
+        const maxFlag = args.find(a => a.startsWith('--max-concurrency='));
+        const config = getDefaultConfig();
+        if (maxFlag) {
+          config.maxConcurrency = parseInt(maxFlag.split('=')[1], 10);
+        }
+        const { active, queued } = splitByLimit(slugs, config.maxConcurrency);
+        console.log(`Starting parallel pipelines (max ${config.maxConcurrency} concurrent):`);
+        console.log(`  Active: ${active.join(', ')}`);
+        if (queued.length > 0) {
+          console.log(`  Queued: ${queued.join(', ')}`);
+        }
+      }
+    },
+    description: 'Run multiple feature pipelines in parallel using git worktrees'
+  },
   help: {
     fn: showHelp,
     description: 'Show this help message'
@@ -163,6 +196,8 @@ Commands:
   feedback-config       View current feedback loop configuration
   feedback-config set <key> <value>  Modify a config value (minRatingThreshold, enabled)
   feedback-config reset Reset feedback configuration to defaults
+  parallel <slugs...>   Run multiple feature pipelines in parallel
+  parallel status       Show status of all parallel pipelines
   help                  Show this help message
 
 Examples:
