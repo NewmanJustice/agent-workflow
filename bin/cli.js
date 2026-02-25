@@ -243,10 +243,11 @@ const commands = {
         if (slugs.length === 0) {
           console.error('Usage: orchestr8 parallel <slug1> <slug2> ... [options]');
           console.error('\nOptions:');
-          console.error('  --dry-run          Preview execution plan without running');
-          console.error('  --yes, -y          Skip confirmation prompt');
-          console.error('  --force            Override existing lock');
-          console.error('  --verbose          Stream output to console (not just logs)');
+          console.error('  --dry-run            Preview execution plan without running');
+          console.error('  --yes, -y            Skip confirmation prompt');
+          console.error('  --force              Override existing lock');
+          console.error('  --verbose            Stream output to console (not just logs)');
+          console.error('  --skip-preflight     Skip feature validation checks');
           console.error('  --max-concurrency=N  Set max parallel pipelines (default: 3)');
           console.error('\nSubcommands:');
           console.error('  parallel status    Show status of all pipelines');
@@ -260,7 +261,8 @@ const commands = {
           dryRun: args.includes('--dry-run'),
           yes: args.includes('--yes') || args.includes('-y'),
           force: args.includes('--force'),
-          verbose: args.includes('--verbose')
+          verbose: args.includes('--verbose'),
+          skipPreflight: args.includes('--skip-preflight')
         };
         if (maxFlag) {
           options.maxConcurrency = parseInt(maxFlag.split('=')[1], 10);
@@ -309,6 +311,7 @@ Commands:
   parallel <slugs...> --dry-run  Show execution plan without running
   parallel <slugs...> --yes      Skip confirmation prompt
   parallel <slugs...> --verbose  Stream output to console
+  parallel <slugs...> --skip-preflight  Skip feature validation checks
   parallel status       Show status of all parallel pipelines
   parallel status --detailed  Show progress bars and stage info
   parallel abort        Stop all running pipelines

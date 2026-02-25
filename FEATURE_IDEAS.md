@@ -39,6 +39,7 @@ Suggested features to implement using the `/implement-feature` pipeline.
 | ✅ | parallel-lock | S | Lock file to prevent concurrent runs |
 | ✅ | parallel-logging | M | Output to log files per pipeline |
 | ✅ | parallel-abort | M | Abort command to stop all and cleanup |
+| ✅ | parallel-preflight | M | Validate feature specs, detect conflicts before execution |
 
 ## High Priority (P1)
 

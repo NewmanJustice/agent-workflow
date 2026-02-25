@@ -613,4 +613,122 @@ describe('parallel-features', () => {
       assert.strictEqual(result.rolledBack, 0);
     });
   });
+
+  describe('pre-flight batch validation', () => {
+    let testBlueprintDir;
+
+    beforeEach(() => {
+      // Create test blueprint directory structure
+      testBlueprintDir = path.join(tempDir, '.blueprint', 'features');
+      fs.mkdirSync(testBlueprintDir, { recursive: true });
+    });
+
+    it('T-PB-1.1: validateFeatureSpec detects missing FEATURE_SPEC.md', () => {
+      if (!parallel) return;
+      const result = parallel.validateFeatureSpec('nonexistent-feature');
+      assert.strictEqual(result.valid, false);
+      assert.ok(result.errors.some(e => e.includes('Missing FEATURE_SPEC.md')));
+    });
+
+    it('T-PB-1.2: extractFilesToModify extracts file paths from table format', () => {
+      if (!parallel) return;
+      const planContent = `
+## Files to Create/Modify
+
+| Path | Action | Purpose |
+|------|--------|---------|
+| src/utils.js | modify | Add helper |
+| src/index.js | modify | Export new util |
+| test/utils.test.js | create | Add tests |
+
+## Implementation Steps
+`;
+      const files = parallel.extractFilesToModify(planContent);
+      assert.ok(files.includes('src/utils.js'));
+      assert.ok(files.includes('src/index.js'));
+      assert.ok(files.includes('test/utils.test.js'));
+    });
+
+    it('T-PB-1.3: detectFileOverlap finds files modified by multiple features', () => {
+      if (!parallel) return;
+      const validations = [
+        { slug: 'feat-a', filesToModify: ['src/utils.js', 'src/a.js'] },
+        { slug: 'feat-b', filesToModify: ['src/utils.js', 'src/b.js'] },
+        { slug: 'feat-c', filesToModify: ['src/c.js'] }
+      ];
+      const overlaps = parallel.detectFileOverlap(validations);
+      assert.strictEqual(overlaps.length, 1);
+      assert.strictEqual(overlaps[0].file, 'src/utils.js');
+      assert.deepStrictEqual(overlaps[0].features, ['feat-a', 'feat-b']);
+    });
+
+    it('T-PB-1.4: detectFileOverlap returns empty array when no overlaps', () => {
+      if (!parallel) return;
+      const validations = [
+        { slug: 'feat-a', filesToModify: ['src/a.js'] },
+        { slug: 'feat-b', filesToModify: ['src/b.js'] }
+      ];
+      const overlaps = parallel.detectFileOverlap(validations);
+      assert.strictEqual(overlaps.length, 0);
+    });
+
+    it('T-PB-1.5: estimateScope calculates time based on stories and files', () => {
+      if (!parallel) return;
+      const validations = [
+        { slug: 'feat-a', storyCount: 3, filesToModify: ['a.js', 'b.js'] },
+        { slug: 'feat-b', storyCount: 1, filesToModify: [] }
+      ];
+      const estimates = parallel.estimateScope(validations);
+      assert.strictEqual(estimates.length, 2);
+      // feat-a: 10 base + 3*5 stories + 2*2 files = 29
+      assert.strictEqual(estimates[0].estimatedMinutes, 29);
+      // feat-b: 10 base + 1*5 stories + 0 files = 15
+      assert.strictEqual(estimates[1].estimatedMinutes, 15);
+    });
+
+    it('T-PB-1.6: validateParallelBatch returns comprehensive validation result', () => {
+      if (!parallel) return;
+      // Test with non-existent features
+      const result = parallel.validateParallelBatch(['nonexistent-a', 'nonexistent-b']);
+      assert.strictEqual(typeof result.valid, 'boolean');
+      assert.ok(Array.isArray(result.features));
+      assert.ok(Array.isArray(result.fileOverlaps));
+      assert.ok(Array.isArray(result.dependencies));
+      assert.ok(Array.isArray(result.scopeEstimates));
+      assert.strictEqual(typeof result.totalEstimatedMinutes, 'number');
+    });
+
+    it('T-PB-1.7: formatPreflightResults produces readable output', () => {
+      if (!parallel) return;
+      const mockResults = {
+        valid: false,
+        features: [
+          { slug: 'feat-a', valid: true, specComplete: true, storiesExist: true, storyCount: 2, planExists: true, errors: [], warnings: [] },
+          { slug: 'feat-b', valid: false, specComplete: false, storiesExist: false, storyCount: 0, planExists: false, errors: ['Missing FEATURE_SPEC.md'], warnings: [] }
+        ],
+        fileOverlaps: [],
+        dependencies: [],
+        scopeEstimates: [
+          { slug: 'feat-a', storyCount: 2, fileCount: 3, estimatedMinutes: 20 },
+          { slug: 'feat-b', storyCount: 0, fileCount: 0, estimatedMinutes: 10 }
+        ],
+        recommendations: [],
+        totalEstimatedMinutes: 30,
+        parallelEstimatedMinutes: 20,
+        invalidFeatures: [{ slug: 'feat-b' }]
+      };
+      const output = parallel.formatPreflightResults(mockResults);
+      assert.ok(output.includes('Pre-flight Validation'));
+      assert.ok(output.includes('feat-a'));
+      assert.ok(output.includes('feat-b'));
+      assert.ok(output.includes('Scope Estimation'));
+    });
+
+    it('T-PB-1.8: validateParallelBatch marks batch invalid when features missing specs', () => {
+      if (!parallel) return;
+      const result = parallel.validateParallelBatch(['no-spec-feature']);
+      assert.strictEqual(result.valid, false);
+      assert.ok(result.invalidFeatures.length > 0);
+    });
+  });
 });

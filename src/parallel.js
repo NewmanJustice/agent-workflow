@@ -445,6 +445,281 @@ function logWithTimestamp(stream, prefix, data) {
   });
 }
 
+// --- Pre-flight Feature Validation ---
+
+function validateFeatureSpec(slug) {
+  const featDir = `.blueprint/features/feature_${slug}`;
+  const specPath = path.join(featDir, 'FEATURE_SPEC.md');
+  const planPath = path.join(featDir, 'IMPLEMENTATION_PLAN.md');
+
+  const result = {
+    slug,
+    valid: true,
+    specExists: false,
+    specComplete: false,
+    storiesExist: false,
+    storyCount: 0,
+    planExists: false,
+    filesToModify: [],
+    errors: [],
+    warnings: []
+  };
+
+  // Check feature spec exists
+  if (!fs.existsSync(specPath)) {
+    result.errors.push('Missing FEATURE_SPEC.md');
+    result.valid = false;
+  } else {
+    result.specExists = true;
+    // Check if spec has required sections
+    const specContent = fs.readFileSync(specPath, 'utf8');
+    const hasIntent = specContent.includes('## 1. Feature Intent') || specContent.includes('# Feature Intent');
+    const hasScope = specContent.includes('## 2. Scope') || specContent.includes('# Scope');
+    const hasBehaviour = specContent.includes('## 3. Behaviour') || specContent.includes('Behaviour Overview');
+
+    if (!hasIntent || !hasScope || !hasBehaviour) {
+      result.warnings.push('Spec may be incomplete (missing required sections)');
+    } else {
+      result.specComplete = true;
+    }
+  }
+
+  // Check for stories
+  if (fs.existsSync(featDir)) {
+    const files = fs.readdirSync(featDir);
+    const stories = files.filter(f => f.startsWith('story-') && f.endsWith('.md'));
+    result.storyCount = stories.length;
+    result.storiesExist = stories.length > 0;
+
+    if (!result.storiesExist) {
+      result.warnings.push('No user stories found (story-*.md)');
+    }
+  }
+
+  // Check for implementation plan and extract files to modify
+  if (fs.existsSync(planPath)) {
+    result.planExists = true;
+    const planContent = fs.readFileSync(planPath, 'utf8');
+    result.filesToModify = extractFilesToModify(planContent);
+  }
+
+  return result;
+}
+
+function extractFilesToModify(planContent) {
+  const files = [];
+  const lines = planContent.split('\n');
+  let inFilesSection = false;
+
+  for (const line of lines) {
+    // Detect "Files to Create/Modify" section
+    if (line.includes('Files to Create') || line.includes('Files to Modify')) {
+      inFilesSection = true;
+      continue;
+    }
+
+    // Stop at next section
+    if (inFilesSection && line.startsWith('## ')) {
+      break;
+    }
+
+    // Extract file paths from table rows or bullet points
+    if (inFilesSection) {
+      // Match table format: | path | action | purpose |
+      const tableMatch = line.match(/\|\s*`?([^|`]+)`?\s*\|/);
+      if (tableMatch && tableMatch[1].includes('/') || tableMatch && tableMatch[1].includes('.')) {
+        const filePath = tableMatch[1].trim();
+        if (filePath && !filePath.includes('---') && !filePath.toLowerCase().includes('path')) {
+          files.push(filePath);
+        }
+      }
+
+      // Match bullet point format: - path/to/file
+      const bulletMatch = line.match(/^[\s*-]+\s*`?([^\s`]+\.[a-z]+)`?/i);
+      if (bulletMatch) {
+        files.push(bulletMatch[1].trim());
+      }
+    }
+  }
+
+  return [...new Set(files)]; // Dedupe
+}
+
+function detectFileOverlap(featureValidations) {
+  const fileToFeatures = new Map();
+
+  for (const fv of featureValidations) {
+    for (const file of fv.filesToModify) {
+      if (!fileToFeatures.has(file)) {
+        fileToFeatures.set(file, []);
+      }
+      fileToFeatures.get(file).push(fv.slug);
+    }
+  }
+
+  const overlaps = [];
+  for (const [file, features] of fileToFeatures) {
+    if (features.length > 1) {
+      overlaps.push({ file, features });
+    }
+  }
+
+  return overlaps;
+}
+
+function detectDependencies(featureValidations) {
+  const dependencies = [];
+  const slugs = featureValidations.map(fv => fv.slug);
+
+  for (const fv of featureValidations) {
+    if (!fv.specExists) continue;
+
+    const specPath = `.blueprint/features/feature_${fv.slug}/FEATURE_SPEC.md`;
+    try {
+      const content = fs.readFileSync(specPath, 'utf8').toLowerCase();
+
+      // Check if spec references other features in the batch
+      for (const otherSlug of slugs) {
+        if (otherSlug !== fv.slug) {
+          if (content.includes(otherSlug) || content.includes(`depends on ${otherSlug}`) || content.includes(`requires ${otherSlug}`)) {
+            dependencies.push({ feature: fv.slug, dependsOn: otherSlug });
+          }
+        }
+      }
+    } catch {
+      // Skip if can't read
+    }
+  }
+
+  return dependencies;
+}
+
+function estimateScope(featureValidations) {
+  return featureValidations.map(fv => {
+    // Estimate based on story count and files to modify
+    let estimatedMinutes = 10; // Base time
+    estimatedMinutes += fv.storyCount * 5; // 5 min per story
+    estimatedMinutes += fv.filesToModify.length * 2; // 2 min per file
+
+    return {
+      slug: fv.slug,
+      storyCount: fv.storyCount,
+      fileCount: fv.filesToModify.length,
+      estimatedMinutes
+    };
+  });
+}
+
+function validateParallelBatch(slugs) {
+  const featureValidations = slugs.map(validateFeatureSpec);
+  const fileOverlaps = detectFileOverlap(featureValidations);
+  const dependencies = detectDependencies(featureValidations);
+  const scopeEstimates = estimateScope(featureValidations);
+
+  // Check for blocking errors
+  const invalidFeatures = featureValidations.filter(fv => !fv.valid);
+  const hasBlockingErrors = invalidFeatures.length > 0;
+
+  // Determine overall validity
+  const canProceed = !hasBlockingErrors;
+
+  // Build recommendations
+  const recommendations = [];
+
+  if (fileOverlaps.length > 0) {
+    // Suggest running features with overlaps sequentially
+    const overlappingFeatures = new Set();
+    fileOverlaps.forEach(o => o.features.forEach(f => overlappingFeatures.add(f)));
+    const nonOverlapping = slugs.filter(s => !overlappingFeatures.has(s));
+
+    if (nonOverlapping.length > 0) {
+      recommendations.push(`Consider running ${[...overlappingFeatures].join(', ')} sequentially due to file overlap`);
+    }
+  }
+
+  if (dependencies.length > 0) {
+    recommendations.push(`Dependency detected: ${dependencies.map(d => `${d.feature} → ${d.dependsOn}`).join(', ')}`);
+  }
+
+  // Calculate totals
+  const totalEstimatedMinutes = scopeEstimates.reduce((sum, s) => sum + s.estimatedMinutes, 0);
+  const maxEstimatedMinutes = Math.max(...scopeEstimates.map(s => s.estimatedMinutes));
+
+  return {
+    valid: canProceed,
+    features: featureValidations,
+    fileOverlaps,
+    dependencies,
+    scopeEstimates,
+    recommendations,
+    totalEstimatedMinutes,
+    parallelEstimatedMinutes: maxEstimatedMinutes, // Time if run in parallel
+    invalidFeatures
+  };
+}
+
+function formatPreflightResults(results, options = {}) {
+  let output = '\nPre-flight Validation\n=====================\n\n';
+
+  // Feature status
+  for (const fv of results.features) {
+    const icon = fv.valid ? '✓' : '✗';
+    let status = [];
+    if (fv.specComplete) status.push('Spec complete');
+    if (fv.storiesExist) status.push(`${fv.storyCount} stories`);
+    if (fv.planExists) status.push('Plan exists');
+
+    output += `${icon} ${fv.slug}: ${status.length > 0 ? status.join(', ') : 'Not ready'}\n`;
+
+    for (const err of fv.errors) {
+      output += `    ✗ ${err}\n`;
+    }
+    for (const warn of fv.warnings) {
+      output += `    ⚠ ${warn}\n`;
+    }
+  }
+
+  // File overlap
+  if (results.fileOverlaps.length > 0) {
+    output += '\nConflict Analysis\n=================\n\n';
+    output += '⚠ File overlap detected:\n';
+    for (const overlap of results.fileOverlaps) {
+      output += `  • ${overlap.file}: ${overlap.features.join(', ')} both modify\n`;
+    }
+  }
+
+  // Dependencies
+  if (results.dependencies.length > 0) {
+    output += '\n⚠ Dependencies detected:\n';
+    for (const dep of results.dependencies) {
+      output += `  • ${dep.feature} depends on ${dep.dependsOn}\n`;
+    }
+  }
+
+  // Scope estimation
+  output += '\nScope Estimation\n================\n\n';
+  output += '  Feature         | Stories | Files | Est. Time\n';
+  output += '  ----------------|---------|-------|----------\n';
+  for (const scope of results.scopeEstimates) {
+    const slugPad = scope.slug.padEnd(15);
+    const storiesPad = String(scope.storyCount).padStart(7);
+    const filesPad = String(scope.fileCount).padStart(5);
+    output += `  ${slugPad} |${storiesPad} |${filesPad} | ~${scope.estimatedMinutes} min\n`;
+  }
+
+  output += `\nTotal estimated: ~${results.totalEstimatedMinutes} min (parallel: ~${results.parallelEstimatedMinutes} min)\n`;
+
+  // Recommendations
+  if (results.recommendations.length > 0) {
+    output += '\nRecommendations\n===============\n';
+    for (const rec of results.recommendations) {
+      output += `  • ${rec}\n`;
+    }
+  }
+
+  return output;
+}
+
 // --- Timeout ---
 
 function withTimeout(promise, timeoutMs, slug) {
@@ -751,20 +1026,25 @@ function runPipelineInWorktree(slug, worktreePath, config = null, options = {}) 
 
 // --- Main Orchestration ---
 
-function dryRun(slugs, config, baseBranch, gitStatus, validation) {
+function dryRun(slugs, config, baseBranch, gitStatus, validation, batchValidation = null) {
   const parallelCfg = readParallelConfig();
   const { active, queued } = splitByLimit(slugs, config.maxConcurrency);
 
   console.log('\n=== DRY RUN MODE ===\n');
-  console.log('Pre-flight checks:');
+  console.log('Git Checks:');
   console.log(`  ${gitStatus.isGitRepo ? '✓' : '✗'} Git repository: ${gitStatus.isGitRepo ? 'yes' : 'no'}`);
   console.log(`  ${!gitStatus.isDirty ? '✓' : '✗'} Working tree: ${gitStatus.isDirty ? 'dirty (has uncommitted changes)' : 'clean'}`);
   console.log(`  ✓ Git version: ${gitStatus.gitVersion}`);
   console.log(`  ✓ Base branch: ${baseBranch}`);
 
   if (!validation.valid) {
-    console.log(`\n⚠️  WARNING: Pre-flight checks failed. Real execution would abort.`);
+    console.log(`\n⚠️  WARNING: Git checks failed. Real execution would abort.`);
     validation.errors.forEach(e => console.log(`     - ${e}`));
+  }
+
+  // Show batch validation results (already printed in runParallel if issues found)
+  if (batchValidation && !batchValidation.valid) {
+    console.log(`\n⚠️  WARNING: Feature validation failed. Real execution would abort.`);
   }
 
   console.log(`\nConfiguration:`);
@@ -816,9 +1096,39 @@ async function runParallel(slugs, options = {}) {
   const gitStatus = checkGitStatus();
   const validation = validatePreFlight(gitStatus);
 
+  // Batch validation (unless skipped)
+  let batchValidation = null;
+  if (!options.skipPreflight) {
+    batchValidation = validateParallelBatch(slugs);
+
+    // Show pre-flight results in dry-run or if there are issues
+    if (options.dryRun || !batchValidation.valid || batchValidation.fileOverlaps.length > 0 || batchValidation.dependencies.length > 0) {
+      console.log(formatPreflightResults(batchValidation));
+    }
+
+    // Block if there are invalid features
+    if (!batchValidation.valid && !options.dryRun) {
+      console.error('\nCannot proceed. Fix issues above or use --skip-preflight to override.\n');
+      console.error('Suggested commands:');
+      for (const inv of batchValidation.invalidFeatures) {
+        if (!inv.specExists) {
+          console.error(`  /implement-feature "${inv.slug}" --pause-after=alex`);
+        } else if (!inv.storiesExist) {
+          console.error(`  /implement-feature "${inv.slug}" --pause-after=cass`);
+        }
+      }
+      return { success: false, error: 'preflight-failed', validation: batchValidation };
+    }
+
+    // Warn about conflicts but allow proceeding with confirmation
+    if (batchValidation.fileOverlaps.length > 0 && !options.dryRun && !options.yes) {
+      console.warn('\n⚠ File overlaps detected - merge conflicts are likely.\n');
+    }
+  }
+
   // Dry run mode - show what would happen without executing
   if (options.dryRun) {
-    return dryRun(slugs, config, baseBranch, gitStatus, validation);
+    return dryRun(slugs, config, baseBranch, gitStatus, validation, batchValidation);
   }
 
   if (!validation.valid) {
@@ -1194,6 +1504,14 @@ module.exports = {
   // Disk space
   checkDiskSpace,
   validateDiskSpace,
+  // Pre-flight batch validation
+  validateFeatureSpec,
+  extractFilesToModify,
+  detectFileOverlap,
+  detectDependencies,
+  estimateScope,
+  validateParallelBatch,
+  formatPreflightResults,
   // Timeout
   withTimeout,
   getTimeoutMs,
