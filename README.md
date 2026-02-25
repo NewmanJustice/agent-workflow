@@ -55,6 +55,17 @@ This updates `.blueprint/agents/`, `.blueprint/templates/`, `.blueprint/ways_of_
 | `npx orchestr8 insights --bottlenecks` | View bottleneck analysis |
 | `npx orchestr8 insights --failures` | View failure pattern analysis |
 
+### Parallel Execution
+
+| Command | Description |
+|---------|-------------|
+| `npx orchestr8 parallel <slugs...>` | Run multiple features in parallel |
+| `npx orchestr8 parallel <slugs...> --dry-run` | Preview execution plan |
+| `npx orchestr8 parallel status` | Show status of running pipelines |
+| `npx orchestr8 parallel cleanup` | Remove completed worktrees |
+| `npx orchestr8 parallel-config` | View parallel configuration |
+| `npx orchestr8 parallel-config set <key> <value>` | Modify parallel settings |
+
 ### Configuration
 
 | Command | Description |
@@ -64,6 +75,8 @@ This updates `.blueprint/agents/`, `.blueprint/templates/`, `.blueprint/ways_of_
 | `npx orchestr8 retry-config reset` | Reset to defaults |
 | `npx orchestr8 feedback-config` | View feedback thresholds |
 | `npx orchestr8 feedback-config set <key> <value>` | Modify feedback settings |
+| `npx orchestr8 parallel-config` | View parallel pipeline configuration |
+| `npx orchestr8 parallel-config set <key> <value>` | Modify parallel settings |
 
 ## Usage
 
@@ -183,6 +196,7 @@ orchestr8 includes these built-in modules for observability and self-improvement
 | **handoff** | Structured summaries between agents for token efficiency |
 | **business-context** | Lazy loading of business context based on feature needs |
 | **tools** | Tool schemas and validation for Claude native features |
+| **parallel** | Parallel pipeline execution using git worktrees |
 
 ### How They Work Together
 
@@ -239,9 +253,13 @@ your-project/
 ├── .claude/
 │   ├── commands/
 │   │   └── implement-feature.md   # The /implement-feature skill
+│   ├── worktrees/                 # Git worktrees for parallel execution
+│   │   └── feat-{slug}/           # Isolated worktree per feature
 │   ├── pipeline-history.json      # Execution history (gitignored)
 │   ├── retry-config.json          # Retry configuration (gitignored)
 │   ├── feedback-config.json       # Feedback thresholds (gitignored)
+│   ├── parallel-config.json       # Parallel execution config (gitignored)
+│   ├── parallel-queue.json        # Parallel pipeline state (gitignored)
 │   └── implement-queue.json       # Pipeline queue state (gitignored)
 └── test/
     ├── artifacts/                 # Test specs per feature
@@ -307,6 +325,148 @@ Version 2.7 introduces several optimizations to reduce token usage:
 | **Smart Story Routing** | ~25,000-40,000 tokens | Skip Cass for technical features |
 
 **Total estimated savings: 10,000+ tokens per pipeline run** (more for technical features)
+
+## Parallel Execution with Git Worktrees
+
+Run multiple feature pipelines simultaneously using git worktrees for isolation. Each feature gets its own worktree and branch, allowing true parallel development without conflicts.
+
+### How It Works
+
+```
+orchestr8 parallel user-auth dashboard notifications
+                    │
+                    ▼
+    ┌───────────────────────────────────────┐
+    │  Pre-flight Validation                │
+    │  • Git repository check               │
+    │  • Clean working tree required        │
+    │  • Git 2.5+ for worktree support      │
+    └───────────────────────────────────────┘
+                    │
+                    ▼
+    ┌───────────────────────────────────────┐
+    │  Create Isolated Worktrees            │
+    │                                       │
+    │  .claude/worktrees/feat-user-auth/    │
+    │       └─ branch: feature/user-auth    │
+    │                                       │
+    │  .claude/worktrees/feat-dashboard/    │
+    │       └─ branch: feature/dashboard    │
+    │                                       │
+    │  .claude/worktrees/feat-notifications/│
+    │       └─ branch: feature/notifications│
+    └───────────────────────────────────────┘
+                    │
+                    ▼
+    ┌───────────────────────────────────────┐
+    │  Spawn Parallel Pipelines             │
+    │  (max 3 concurrent by default)        │
+    │                                       │
+    │  Each runs: Alex → Nigel → Codey      │
+    │  in its isolated worktree             │
+    └───────────────────────────────────────┘
+                    │
+                    ▼
+    ┌───────────────────────────────────────┐
+    │  Merge on Completion                  │
+    │  • First finished = first merged      │
+    │  • Conflicts preserved for resolution │
+    │  • Successful worktrees cleaned up    │
+    └───────────────────────────────────────┘
+```
+
+### Usage
+
+```bash
+# Run 3 features in parallel (default concurrency)
+npx orchestr8 parallel user-auth dashboard notifications
+
+# Preview what would happen without executing
+npx orchestr8 parallel user-auth dashboard --dry-run
+
+# Limit concurrent pipelines
+npx orchestr8 parallel feat-a feat-b feat-c feat-d --max-concurrency=2
+
+# Check status of running pipelines
+npx orchestr8 parallel status
+
+# Clean up completed/aborted worktrees
+npx orchestr8 parallel cleanup
+```
+
+### Configuration
+
+The parallel module is **CLI-agnostic** — configure it to work with different AI coding tools:
+
+```bash
+# View current configuration
+npx orchestr8 parallel-config
+
+# Output:
+#   cli:            npx claude
+#   skill:          /implement-feature
+#   skillFlags:     --no-commit
+#   worktreeDir:    .claude/worktrees
+#   maxConcurrency: 3
+#   queueFile:      .claude/parallel-queue.json
+```
+
+#### Configuration Options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `cli` | `npx claude` | The CLI tool to invoke |
+| `skill` | `/implement-feature` | The command/skill to run |
+| `skillFlags` | `--no-commit` | Additional flags for the skill |
+| `worktreeDir` | `.claude/worktrees` | Where to create worktrees |
+| `maxConcurrency` | `3` | Maximum parallel pipelines |
+| `queueFile` | `.claude/parallel-queue.json` | State persistence file |
+
+#### Examples for Different CLIs
+
+```bash
+# Claude Code (default)
+npx orchestr8 parallel-config set cli "npx claude"
+npx orchestr8 parallel-config set skill "/implement-feature"
+
+# Cursor
+npx orchestr8 parallel-config set cli "cursor"
+npx orchestr8 parallel-config set skill "composer"
+npx orchestr8 parallel-config set skillFlags ""
+
+# Aider
+npx orchestr8 parallel-config set cli "aider"
+npx orchestr8 parallel-config set skill "--message"
+npx orchestr8 parallel-config set skillFlags "implement feature:"
+
+# Custom agent script
+npx orchestr8 parallel-config set cli "./my-agent.sh"
+npx orchestr8 parallel-config set skill "run"
+
+# Reset to defaults
+npx orchestr8 parallel-config reset
+```
+
+### State Management
+
+Each feature progresses through these states:
+
+```
+parallel_queued → worktree_created → parallel_running → merge_pending → parallel_complete
+                                           │                  │
+                                           ▼                  ▼
+                                    parallel_failed    merge_conflict
+```
+
+- **Successful features**: Merged to main, worktree cleaned up
+- **Failed pipelines**: Worktree preserved for debugging
+- **Merge conflicts**: Branch preserved, manual resolution required
+
+### Requirements
+
+- **Git 2.5+** (worktree support)
+- **Clean working tree** (no uncommitted changes)
+- **Sufficient disk space** (each worktree is a full checkout)
 
 ## License
 
