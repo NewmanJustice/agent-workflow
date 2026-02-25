@@ -77,11 +77,34 @@ Run the pipeline with the `/implement-feature` skill in Claude Code:
 /implement-feature "user-auth" --no-history  # Skip history recording
 /implement-feature "user-auth" --no-commit   # Skip auto-commit
 /implement-feature "user-auth" --pause-after=alex|cass|nigel|codey-plan
+/implement-feature "user-auth" --with-stories  # Force include Cass stage
+/implement-feature "user-auth" --skip-stories  # Force skip Cass stage
+```
+
+## Smart Story Routing (v2.7)
+
+The pipeline automatically classifies features as **technical** or **user-facing** and routes accordingly:
+
+| Feature Type | Cass Stage | Example Features |
+|--------------|------------|------------------|
+| **Technical** | Skipped | refactoring, optimization, infrastructure, caching |
+| **User-facing** | Included | login flows, dashboards, forms, notifications |
+
+This saves ~25-40k tokens per technical feature while preserving story quality for user-facing features.
+
+```bash
+# Auto-detection (default)
+/implement-feature "token-optimization"  # Detected as technical → skips Cass
+/implement-feature "user-dashboard"      # Detected as user-facing → includes Cass
+
+# Manual override
+/implement-feature "edge-case" --with-stories   # Force include Cass
+/implement-feature "edge-case" --skip-stories   # Force skip Cass
 ```
 
 ## Pipeline Flow
 
-The pipeline now includes validation, feedback loops, and history tracking:
+The pipeline includes validation, smart routing, feedback loops, and history tracking:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -97,19 +120,30 @@ The pipeline now includes validation, feedback loops, and history tracking:
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│  Alex (Feature Spec)                                            │
-│         │                                                       │
-│         ▼                                                       │
-│  Cass rates Alex → Quality Gate (pause if rating < 3)           │
-│         │                                                       │
-│         ▼                                                       │
-│  Cass (User Stories)                                            │
-│         │                                                       │
-│         ▼                                                       │
-│  Nigel rates Cass → Quality Gate                                │
-│         │                                                       │
-│         ▼                                                       │
-│  Nigel (Tests)                                                  │
+│  Alex (Feature Spec) + Handoff Summary                          │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  Smart Routing (v2.7)                                           │
+│  • Classify feature as technical or user-facing                 │
+│  • Technical → skip Cass (saves ~25-40k tokens)                 │
+│  • User-facing → include Cass                                   │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+              ┌───────────────┴───────────────┐
+              │                               │
+              ▼                               ▼
+┌──────────────────────┐        ┌──────────────────────┐
+│  Technical Features  │        │  User-Facing Features│
+│  Skip to Nigel       │        │  Cass (User Stories) │
+└──────────────────────┘        └──────────────────────┘
+              │                               │
+              └───────────────┬───────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  Nigel (Tests) + Handoff Summary                                │
 │         │                                                       │
 │         ▼                                                       │
 │  Codey rates Nigel → Quality Gate                               │
@@ -145,6 +179,10 @@ orchestr8 includes these built-in modules for observability and self-improvement
 | **insights** | Analyzes patterns, detects bottlenecks, recommends improvements |
 | **retry** | Smart retry strategies based on failure history |
 | **feedback** | Agent-to-agent quality assessment with correlation tracking |
+| **classifier** | Smart routing — classifies features as technical or user-facing |
+| **handoff** | Structured summaries between agents for token efficiency |
+| **business-context** | Lazy loading of business context based on feature needs |
+| **tools** | Tool schemas and validation for Claude native features |
 
 ### How They Work Together
 
@@ -175,14 +213,24 @@ analyzes:               recommends:            calibrates:
 ```
 your-project/
 ├── .blueprint/
-│   ├── agents/                    # Agent specifications (with guardrails)
+│   ├── agents/                    # Agent specifications
 │   │   ├── AGENT_SPECIFICATION_ALEX.md
 │   │   ├── AGENT_BA_CASS.md
 │   │   ├── AGENT_TESTER_NIGEL.md
-│   │   └── AGENT_DEVELOPER_CODEY.md
-│   ├── templates/                 # Spec templates
+│   │   ├── AGENT_DEVELOPER_CODEY.md
+│   │   └── GUARDRAILS.md          # Shared guardrails (v2.7)
+│   ├── prompts/                   # Slim runtime prompts (v2.7)
+│   │   ├── TEMPLATE.md
+│   │   ├── alex-runtime.md
+│   │   ├── cass-runtime.md
+│   │   ├── nigel-runtime.md
+│   │   ├── codey-plan-runtime.md
+│   │   └── codey-implement-runtime.md
+│   ├── templates/                 # Spec and output templates
 │   │   ├── SYSTEM_SPEC.md
-│   │   └── FEATURE_SPEC.md
+│   │   ├── FEATURE_SPEC.md
+│   │   ├── STORY_TEMPLATE.md      # (v2.7)
+│   │   └── TEST_TEMPLATE.md       # (v2.7)
 │   ├── ways_of_working/           # Development rituals
 │   ├── features/                  # Feature specs (populated per feature)
 │   └── system_specification/      # System spec (populated on first run)
@@ -243,6 +291,22 @@ $ npx orchestr8 insights
 - Success rate: 75% → 85% (improving)
 - Avg duration: 14 min → 11 min (improving)
 ```
+
+## Token Efficiency (v2.7)
+
+Version 2.7 introduces several optimizations to reduce token usage:
+
+| Optimization | Savings | Description |
+|--------------|---------|-------------|
+| **Shared Guardrails** | ~1,200 tokens | Single GUARDRAILS.md instead of duplicated in each agent spec |
+| **Slim Runtime Prompts** | ~5,200 tokens | 30-50 line prompts instead of 200-400 line full specs |
+| **Upstream Summaries** | ~2,000-4,000 tokens | Handoff summaries between agents instead of full artifacts |
+| **Template Extraction** | ~800 tokens | Templates moved to separate files, loaded on demand |
+| **Lazy Business Context** | Variable | Only loaded when feature spec references it |
+| **Compressed Feedback** | ~400 tokens | 3-line feedback prompts instead of 7-line |
+| **Smart Story Routing** | ~25,000-40,000 tokens | Skip Cass for technical features |
+
+**Total estimated savings: 10,000+ tokens per pipeline run** (more for technical features)
 
 ## License
 
