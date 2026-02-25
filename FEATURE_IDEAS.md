@@ -35,10 +35,10 @@ Suggested features to implement using the `/implement-feature` pipeline.
 
 | Status | Feature | Effort | Description |
 |--------|---------|--------|-------------|
-| ⏳ | parallel-confirm | S | Confirmation prompt before execution |
-| ⏳ | parallel-lock | S | Lock file to prevent concurrent runs |
-| ⏳ | parallel-logging | M | Output to log files per pipeline |
-| ⏳ | parallel-abort | M | Abort command to stop all and cleanup |
+| ✅ | parallel-confirm | S | Confirmation prompt before execution |
+| ✅ | parallel-lock | S | Lock file to prevent concurrent runs |
+| ✅ | parallel-logging | M | Output to log files per pipeline |
+| ✅ | parallel-abort | M | Abort command to stop all and cleanup |
 
 ## High Priority (P1)
 
