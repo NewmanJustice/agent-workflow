@@ -71,7 +71,8 @@ Suggested features to implement using the `/implement-feature` pipeline.
 | 💡 | dry-run-mode | M | Validate without running agents |
 | 💡 | feature-dependencies | M | Define execution order |
 | 💡 | webhook-notifications | L | Slack/email on completion |
-| 💡 | mcp-integration | XL | Expose as MCP tools |
+| 💡 | mcp-integration | XL | Expose orchestr8 as MCP tools |
+| 💡 | mcp-repos-server | XL | Cross-repo context for distributed monoliths |
 
 ---
 
@@ -221,6 +222,106 @@ Expose orchestr8 as MCP tools:
 - `get-pipeline-status` for monitoring
 - `get-insights` for analytics
 - Enables integration with other AI systems and workflows
+
+### mcp-repos-server (Distributed Monolith Support)
+
+MCP server for cross-repository context in distributed architectures. Enables agents to understand service boundaries, API contracts, and event schemas across multiple repositories.
+
+**Problem:** In a distributed monolith, a feature in repo A might depend on APIs in repo B, events from repo C, and shared types from repo D. Without cross-repo visibility, agents make assumptions that lead to integration failures.
+
+**Proposed MCP Tools:**
+
+| Tool | Purpose |
+|------|---------|
+| `list_repos` | List all repos in the architecture |
+| `get_service_info` | Get metadata, dependencies, events for a service |
+| `get_api_contract` | Fetch OpenAPI/GraphQL/gRPC specs |
+| `get_event_schema` | Fetch Avro/JSON Schema/Protobuf for events |
+| `search_repos` | Search across repos for types, APIs, code |
+| `get_shared_types` | Fetch common type definitions |
+| `get_dependency_graph` | Visualize upstream/downstream dependencies |
+
+**Configuration via `.blueprint/architecture.yaml`:**
+```yaml
+organization: my-org
+
+repos:
+  - name: user-service
+    url: github.com/my-org/user-service
+    type: service
+    api: api/openapi.yaml
+
+  - name: order-service
+    url: github.com/my-org/order-service
+    type: service
+    api: api/openapi.yaml
+
+  - name: shared-types
+    url: github.com/my-org/shared-types
+    type: library
+
+  - name: event-schemas
+    url: github.com/my-org/event-schemas
+    type: schemas
+    path: schemas/
+
+this_service: order-service
+
+cache:
+  enabled: true
+  ttl: 3600
+  local_path: .blueprint/contracts/
+```
+
+**Example: Alex Using Cross-Repo Context:**
+```
+Feature: Add order cancellation
+
+1. get_dependency_graph("order-service")
+   → Depends on: user-service, payment-service
+   → Publishes to: notification-service
+
+2. get_api_contract("payment-service")
+   → Finds: POST /refunds endpoint
+   → Notes: requires orderId, amount, reason
+
+3. get_event_schema("order.cancelled")
+   → Schema doesn't exist
+   → Notes: need to create new event
+
+4. search_repos("OrderStatus", scope="types")
+   → Finds: enum missing CANCELLED value
+```
+
+**Output in FEATURE_SPEC.md:**
+```markdown
+## Integration Points
+
+| Service | Direction | Contract | Notes |
+|---------|-----------|----------|-------|
+| payment-service | upstream | POST /refunds (v2) | Trigger refund |
+| notification-service | downstream | order.cancelled | New event needed |
+| shared-types | shared | OrderStatus enum | Add CANCELLED |
+```
+
+**Phased Implementation:**
+
+1. **Phase 1: Local Cache** — `orchestr8 sync-contracts` populates `.blueprint/contracts/`
+2. **Phase 2: MCP Server** — Real-time access via GitHub API with caching
+3. **Phase 3: Smart Sync** — Diff detection, version pinning, staleness warnings
+
+**Alternative (Simpler):**
+Central contracts repo as git submodule:
+```bash
+git submodule add github.com/my-org/contracts .blueprint/contracts
+```
+No MCP needed — contracts always available locally.
+
+**Security Considerations:**
+- Read-only access (never writes to external repos)
+- Minimal GitHub token permissions (repo:read)
+- Rate limiting with aggressive caching
+- Secret filtering (never expose .env from other repos)
 
 ---
 
