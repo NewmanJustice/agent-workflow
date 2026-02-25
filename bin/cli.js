@@ -22,7 +22,9 @@ const {
   cleanupWorktrees,
   readParallelConfig,
   writeParallelConfig,
-  getDefaultParallelConfig
+  getDefaultParallelConfig,
+  abortParallel,
+  getLockInfo
 } = require('../src/parallel');
 
 const args = process.argv.slice(2);
@@ -179,10 +181,19 @@ const commands = {
     fn: async () => {
       if (subArg === 'status') {
         const queue = loadQueue();
+        const lock = getLockInfo();
+
         if (!queue.features || queue.features.length === 0) {
-          console.log('No parallel pipelines active.');
+          if (lock) {
+            console.log(`Parallel execution in progress (PID: ${lock.pid})`);
+            console.log(`Started: ${lock.startedAt}`);
+            console.log(`Features: ${lock.features.join(', ')}`);
+          } else {
+            console.log('No parallel pipelines active.');
+          }
           return;
         }
+
         console.log('Parallel Pipeline Status\n');
         console.log(formatStatus(queue.features));
         const summary = {
@@ -193,20 +204,45 @@ const commands = {
           conflicts: queue.features.filter(f => f.status === 'merge_conflict').length
         };
         console.log(`\nRunning: ${summary.running} | Pending: ${summary.pending} | Completed: ${summary.completed} | Failed: ${summary.failed} | Conflicts: ${summary.conflicts}`);
+
+        // Show log paths for running/failed
+        const withLogs = queue.features.filter(f =>
+          f.logPath && (f.status === 'parallel_running' || f.status === 'parallel_failed')
+        );
+        if (withLogs.length > 0) {
+          console.log('\nLog files:');
+          withLogs.forEach(f => console.log(`  ${f.slug}: ${f.logPath}`));
+        }
       } else if (subArg === 'cleanup') {
         const cleaned = await cleanupWorktrees();
         console.log(`Cleaned ${cleaned} worktree(s).`);
+      } else if (subArg === 'abort') {
+        const cleanupFlag = args.includes('--cleanup');
+        await abortParallel({ cleanup: cleanupFlag });
       } else {
-        const slugs = args.slice(1).filter(a => !a.startsWith('--'));
+        const slugs = args.slice(1).filter(a => !a.startsWith('--') && !a.startsWith('-'));
         if (slugs.length === 0) {
-          console.error('Usage: orchestr8 parallel <slug1> <slug2> ... [--max-concurrency=N] [--dry-run]');
-          console.error('       orchestr8 parallel status');
-          console.error('       orchestr8 parallel cleanup');
+          console.error('Usage: orchestr8 parallel <slug1> <slug2> ... [options]');
+          console.error('\nOptions:');
+          console.error('  --dry-run          Preview execution plan without running');
+          console.error('  --yes, -y          Skip confirmation prompt');
+          console.error('  --force            Override existing lock');
+          console.error('  --verbose          Stream output to console (not just logs)');
+          console.error('  --max-concurrency=N  Set max parallel pipelines (default: 3)');
+          console.error('\nSubcommands:');
+          console.error('  parallel status    Show status of all pipelines');
+          console.error('  parallel abort     Stop all running pipelines');
+          console.error('  parallel cleanup   Remove completed/aborted worktrees');
           process.exit(1);
         }
+
         const maxFlag = args.find(a => a.startsWith('--max-concurrency='));
-        const dryRunFlag = args.includes('--dry-run');
-        const options = { dryRun: dryRunFlag };
+        const options = {
+          dryRun: args.includes('--dry-run'),
+          yes: args.includes('--yes') || args.includes('-y'),
+          force: args.includes('--force'),
+          verbose: args.includes('--verbose')
+        };
         if (maxFlag) {
           options.maxConcurrency = parseInt(maxFlag.split('=')[1], 10);
         }
@@ -252,7 +288,11 @@ Commands:
   feedback-config reset Reset feedback configuration to defaults
   parallel <slugs...>   Run multiple feature pipelines in parallel
   parallel <slugs...> --dry-run  Show execution plan without running
+  parallel <slugs...> --yes      Skip confirmation prompt
+  parallel <slugs...> --verbose  Stream output to console
   parallel status       Show status of all parallel pipelines
+  parallel abort        Stop all running pipelines
+  parallel abort --cleanup  Stop all and remove worktrees
   parallel cleanup      Remove completed/aborted worktrees
   parallel-config       View parallel pipeline configuration
   parallel-config set <key> <value>  Modify config (cli, skill, skillFlags, etc.)

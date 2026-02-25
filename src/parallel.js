@@ -3,8 +3,14 @@
 const path = require('path');
 const { execSync, spawn } = require('child_process');
 const fs = require('fs');
+const readline = require('readline');
 
 const CONFIG_FILE = '.claude/parallel-config.json';
+const LOCK_FILE = '.claude/parallel.lock';
+
+// Track running processes for abort handling
+let runningProcesses = new Map();
+let isAborting = false;
 
 function getDefaultParallelConfig() {
   return {
@@ -270,6 +276,222 @@ function getCurrentBranch() {
   return execSync('git branch --show-current', { encoding: 'utf8' }).trim();
 }
 
+// --- Confirmation Prompt ---
+
+function promptConfirm(message) {
+  return new Promise((resolve) => {
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout
+    });
+
+    rl.question(`${message} [y/N] `, (answer) => {
+      rl.close();
+      resolve(answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes');
+    });
+  });
+}
+
+function buildConfirmMessage(slugs, config) {
+  const parallelCfg = readParallelConfig();
+  const { active, queued } = splitByLimit(slugs, config.maxConcurrency);
+
+  let msg = '\nThis will:\n';
+  msg += `  • Create ${slugs.length} git worktree(s) in ${parallelCfg.worktreeDir}/\n`;
+  msg += `  • Start ${active.length} parallel pipeline(s) (max concurrent: ${config.maxConcurrency})\n`;
+  if (queued.length > 0) {
+    msg += `  • Queue ${queued.length} additional feature(s)\n`;
+  }
+  msg += `  • Branches: ${slugs.map(s => `feature/${s}`).join(', ')}\n`;
+  msg += '\nContinue?';
+  return msg;
+}
+
+// --- Lock File ---
+
+function acquireLock(slugs) {
+  if (fs.existsSync(LOCK_FILE)) {
+    const lock = JSON.parse(fs.readFileSync(LOCK_FILE, 'utf8'));
+
+    // Check if process is still running
+    try {
+      process.kill(lock.pid, 0);
+      // Process exists, lock is valid
+      return {
+        acquired: false,
+        existingLock: lock
+      };
+    } catch {
+      // Process doesn't exist, stale lock
+      console.log(`Warning: Found stale lock file (PID ${lock.pid} not running)`);
+      console.log('Removing stale lock and continuing...\n');
+    }
+  }
+
+  const lock = {
+    pid: process.pid,
+    startedAt: new Date().toISOString(),
+    features: slugs
+  };
+
+  const dir = path.dirname(LOCK_FILE);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+  fs.writeFileSync(LOCK_FILE, JSON.stringify(lock, null, 2));
+
+  return { acquired: true };
+}
+
+function releaseLock() {
+  try {
+    if (fs.existsSync(LOCK_FILE)) {
+      fs.unlinkSync(LOCK_FILE);
+    }
+  } catch {
+    // Ignore errors during cleanup
+  }
+}
+
+function getLockInfo() {
+  if (!fs.existsSync(LOCK_FILE)) {
+    return null;
+  }
+  try {
+    return JSON.parse(fs.readFileSync(LOCK_FILE, 'utf8'));
+  } catch {
+    return null;
+  }
+}
+
+// --- Logging ---
+
+function createLogStream(slug, config) {
+  const parallelCfg = config || readParallelConfig();
+  const worktreePath = buildWorktreePath(slug, parallelCfg);
+  const logPath = path.join(worktreePath, 'pipeline.log');
+
+  // Ensure directory exists
+  const logDir = path.dirname(logPath);
+  if (!fs.existsSync(logDir)) {
+    fs.mkdirSync(logDir, { recursive: true });
+  }
+
+  return {
+    path: logPath,
+    stream: fs.createWriteStream(logPath, { flags: 'a' })
+  };
+}
+
+function logWithTimestamp(stream, prefix, data) {
+  const timestamp = new Date().toISOString();
+  const lines = data.toString().split('\n');
+  lines.forEach(line => {
+    if (line.trim()) {
+      stream.write(`[${timestamp}] [${prefix}] ${line}\n`);
+    }
+  });
+}
+
+// --- Abort Handling ---
+
+function setupAbortHandler(queue) {
+  const handler = async () => {
+    if (isAborting) return;
+    isAborting = true;
+
+    console.log('\n\nReceived interrupt signal. Stopping pipelines...\n');
+
+    // Kill all running processes
+    for (const [slug, procInfo] of runningProcesses) {
+      console.log(`Stopping ${slug} (PID: ${procInfo.pid})...`);
+      try {
+        process.kill(procInfo.pid, 'SIGTERM');
+      } catch {
+        // Process may already be dead
+      }
+    }
+
+    // Update queue state
+    if (queue && queue.features) {
+      queue.features.forEach(f => {
+        if (f.status === 'parallel_running' || f.status === 'worktree_created') {
+          f.status = 'aborted';
+        }
+      });
+      saveQueue(queue);
+    }
+
+    releaseLock();
+
+    console.log('\nAborted. Worktrees preserved for debugging.');
+    console.log("Run 'orchestr8 parallel cleanup' to remove.\n");
+
+    process.exit(130); // Standard exit code for Ctrl+C
+  };
+
+  process.on('SIGINT', handler);
+  process.on('SIGTERM', handler);
+
+  return handler;
+}
+
+async function abortParallel(options = {}) {
+  const lock = getLockInfo();
+  const queue = loadQueue();
+
+  if (!lock && (!queue.features || queue.features.length === 0)) {
+    console.log('No parallel pipelines are currently running.');
+    return { success: true };
+  }
+
+  console.log('Stopping parallel pipelines...\n');
+
+  // Try to kill the main process if we have lock info
+  if (lock && lock.pid !== process.pid) {
+    console.log(`Sending stop signal to main process (PID: ${lock.pid})...`);
+    try {
+      process.kill(lock.pid, 'SIGTERM');
+    } catch {
+      console.log('Main process not running.');
+    }
+  }
+
+  // Update queue state
+  let abortedCount = 0;
+  if (queue.features) {
+    queue.features.forEach(f => {
+      if (f.status === 'parallel_running' || f.status === 'worktree_created' || f.status === 'parallel_queued') {
+        f.status = 'aborted';
+        abortedCount++;
+        console.log(`${f.slug}: Marked as aborted`);
+      }
+    });
+    saveQueue(queue);
+  }
+
+  releaseLock();
+
+  if (options.cleanup) {
+    console.log('\nCleaning up worktrees...');
+    await cleanupWorktrees();
+  } else {
+    console.log('\nWorktrees preserved for debugging.');
+    if (queue.features) {
+      const worktrees = queue.features
+        .filter(f => f.worktreePath)
+        .map(f => f.worktreePath);
+      if (worktrees.length > 0) {
+        console.log('Locations:');
+        worktrees.forEach(w => console.log(`  • ${w}`));
+      }
+    }
+    console.log("\nTo clean up: orchestr8 parallel cleanup");
+  }
+
+  return { success: true, abortedCount };
+}
+
 // --- Queue Persistence ---
 
 function loadQueue() {
@@ -288,26 +510,57 @@ function saveQueue(queue) {
 
 // --- Pipeline Execution ---
 
-function runPipelineInWorktree(slug, worktreePath, config = null) {
+function runPipelineInWorktree(slug, worktreePath, config = null, options = {}) {
   const cfg = config || readParallelConfig();
   const cliParts = cfg.cli.split(' ');
   const skillParts = cfg.skill.split(' ');
   const flagParts = cfg.skillFlags ? cfg.skillFlags.split(' ') : [];
   const allArgs = [...cliParts.slice(1), ...skillParts, slug, ...flagParts];
 
+  // Create log stream
+  const log = createLogStream(slug, cfg);
+  log.stream.write(`[${new Date().toISOString()}] Pipeline started for ${slug}\n`);
+  log.stream.write(`[${new Date().toISOString()}] Command: ${cliParts[0]} ${allArgs.join(' ')}\n`);
+  log.stream.write(`[${new Date().toISOString()}] Working directory: ${worktreePath}\n\n`);
+
   return new Promise((resolve) => {
     const proc = spawn(cliParts[0], allArgs, {
       cwd: worktreePath,
-      stdio: 'inherit',
+      stdio: options.verbose ? 'inherit' : ['pipe', 'pipe', 'pipe'],
       shell: true
     });
 
+    // Track process for abort handling
+    runningProcesses.set(slug, { pid: proc.pid, process: proc });
+
+    if (!options.verbose) {
+      // Log stdout
+      if (proc.stdout) {
+        proc.stdout.on('data', (data) => {
+          logWithTimestamp(log.stream, 'stdout', data);
+        });
+      }
+
+      // Log stderr
+      if (proc.stderr) {
+        proc.stderr.on('data', (data) => {
+          logWithTimestamp(log.stream, 'stderr', data);
+        });
+      }
+    }
+
     proc.on('close', (code) => {
-      resolve({ slug, success: code === 0, exitCode: code });
+      runningProcesses.delete(slug);
+      log.stream.write(`\n[${new Date().toISOString()}] Pipeline completed with exit code ${code}\n`);
+      log.stream.end();
+      resolve({ slug, success: code === 0, exitCode: code, logPath: log.path });
     });
 
     proc.on('error', (err) => {
-      resolve({ slug, success: false, error: err.message });
+      runningProcesses.delete(slug);
+      log.stream.write(`\n[${new Date().toISOString()}] Pipeline error: ${err.message}\n`);
+      log.stream.end();
+      resolve({ slug, success: false, error: err.message, logPath: log.path });
     });
   });
 }
@@ -387,6 +640,41 @@ async function runParallel(slugs, options = {}) {
     return { success: false, errors: validation.errors };
   }
 
+  // Check lock (unless forcing)
+  if (!options.force) {
+    const lockResult = acquireLock(slugs);
+    if (!lockResult.acquired) {
+      const lock = lockResult.existingLock;
+      console.error('\nError: Another parallel execution is in progress');
+      console.error(`  PID: ${lock.pid}`);
+      console.error(`  Started: ${lock.startedAt}`);
+      console.error(`  Features: ${lock.features.join(', ')}`);
+      console.error('\nOptions:');
+      console.error('  • Wait for it to complete');
+      console.error('  • Run: orchestr8 parallel status');
+      console.error('  • Force override: orchestr8 parallel ... --force\n');
+      return { success: false, error: 'locked' };
+    }
+  } else {
+    // Force mode - acquire lock anyway
+    const lock = getLockInfo();
+    if (lock) {
+      console.log(`Warning: Overriding existing lock (PID: ${lock.pid})\n`);
+    }
+    acquireLock(slugs);
+  }
+
+  // Confirmation prompt (unless --yes flag)
+  if (!options.yes) {
+    const confirmMsg = buildConfirmMessage(slugs, config);
+    const confirmed = await promptConfirm(confirmMsg);
+    if (!confirmed) {
+      releaseLock();
+      console.log('\nAborted.\n');
+      return { success: true, aborted: true };
+    }
+  }
+
   console.log(`\nStarting parallel pipelines for ${slugs.length} features`);
   console.log(`Base branch: ${baseBranch}`);
   console.log(`Max concurrency: ${config.maxConcurrency}\n`);
@@ -399,7 +687,8 @@ async function runParallel(slugs, options = {}) {
       worktreePath: null,
       branchName: null,
       startedAt: null,
-      completedAt: null
+      completedAt: null,
+      logPath: null
     })),
     startedAt: new Date().toISOString(),
     baseBranch,
@@ -407,15 +696,19 @@ async function runParallel(slugs, options = {}) {
   };
   saveQueue(queue);
 
+  // Setup abort handler for Ctrl+C
+  setupAbortHandler(queue);
+
   const { active, queued } = splitByLimit(slugs, config.maxConcurrency);
   const running = new Map();
   const completed = [];
   let remaining = [...queued];
 
-  // Start initial batch
-  for (const slug of active) {
-    await startFeature(slug, queue, running);
-  }
+  try {
+    // Start initial batch
+    for (const slug of active) {
+      await startFeature(slug, queue, running, options);
+    }
 
   // Process until all complete
   while (running.size > 0 || remaining.length > 0) {
@@ -428,28 +721,35 @@ async function runParallel(slugs, options = {}) {
       const feature = queue.features.find(f => f.slug === result.slug);
       feature.completedAt = new Date().toISOString();
 
+      // Update log path from result
+      if (result.logPath) {
+        feature.logPath = result.logPath;
+      }
+
+      const timestamp = new Date().toISOString().slice(11, 19);
+
       if (result.success) {
         feature.status = 'merge_pending';
-        console.log(`\n✓ ${result.slug} pipeline completed`);
+        console.log(`[${timestamp}] ${result.slug}: Completed ✓`);
 
         // Attempt merge
         const mergeResult = mergeBranch(result.slug);
         if (mergeResult.success) {
           feature.status = 'parallel_complete';
-          console.log(`✓ ${result.slug} merged to ${baseBranch}`);
+          console.log(`[${timestamp}] ${result.slug}: Merged to ${baseBranch} ✓`);
           removeWorktree(result.slug);
         } else if (mergeResult.conflict) {
           feature.status = 'merge_conflict';
           feature.conflictDetails = mergeResult.output;
-          console.log(`⚠ ${result.slug} has merge conflicts - branch preserved`);
+          console.log(`[${timestamp}] ${result.slug}: Merge conflict ⚠ (branch preserved)`);
           execSync('git merge --abort', { stdio: 'pipe' });
         } else {
           feature.status = 'parallel_failed';
-          console.log(`✗ ${result.slug} merge failed: ${mergeResult.output}`);
+          console.log(`[${timestamp}] ${result.slug}: Merge failed ✗`);
         }
       } else {
         feature.status = 'parallel_failed';
-        console.log(`✗ ${result.slug} pipeline failed`);
+        console.log(`[${timestamp}] ${result.slug}: Failed ✗ (see log: ${feature.logPath})`);
         // Preserve worktree for debugging
       }
 
@@ -482,29 +782,43 @@ async function runParallel(slugs, options = {}) {
     console.log('\nFailed features (worktrees preserved for debugging):');
     queue.features
       .filter(f => f.status === 'parallel_failed')
-      .forEach(f => console.log(`  - ${f.worktreePath}`));
+      .forEach(f => {
+        console.log(`  - ${f.worktreePath}`);
+        if (f.logPath) {
+          console.log(`    Log: ${f.logPath}`);
+        }
+      });
   }
 
-  return { success: summary.failed === 0 && summary.conflicts === 0, summary };
+    return { success: summary.failed === 0 && summary.conflicts === 0, summary };
+  } finally {
+    // Always release lock when done
+    releaseLock();
+  }
 }
 
-async function startFeature(slug, queue, running) {
+async function startFeature(slug, queue, running, options = {}) {
   const feature = queue.features.find(f => f.slug === slug);
+  const parallelCfg = readParallelConfig();
 
-  console.log(`Creating worktree for ${slug}...`);
+  console.log(`[${new Date().toISOString().slice(11, 19)}] ${slug}: Creating worktree...`);
   const { worktreePath, branchName } = createWorktree(slug);
 
   feature.worktreePath = worktreePath;
   feature.branchName = branchName;
   feature.status = 'worktree_created';
   feature.startedAt = new Date().toISOString();
+
+  // Set log path
+  feature.logPath = path.join(worktreePath, 'pipeline.log');
+
   saveQueue(queue);
 
-  console.log(`Starting pipeline for ${slug} in ${worktreePath}`);
+  console.log(`[${new Date().toISOString().slice(11, 19)}] ${slug}: Started (log: ${feature.logPath})`);
   feature.status = 'parallel_running';
   saveQueue(queue);
 
-  const promise = runPipelineInWorktree(slug, worktreePath);
+  const promise = runPipelineInWorktree(slug, worktreePath, parallelCfg, options);
   running.set(slug, promise);
 }
 
@@ -534,6 +848,7 @@ async function cleanupWorktrees() {
 module.exports = {
   // Configuration
   CONFIG_FILE,
+  LOCK_FILE,
   getDefaultParallelConfig,
   readParallelConfig,
   writeParallelConfig,
@@ -560,6 +875,18 @@ module.exports = {
   aggregateResults,
   abortFeature,
   abortAll,
+  // Confirmation & Lock
+  promptConfirm,
+  buildConfirmMessage,
+  acquireLock,
+  releaseLock,
+  getLockInfo,
+  // Logging
+  createLogStream,
+  logWithTimestamp,
+  // Abort handling
+  abortParallel,
+  setupAbortHandler,
   // Git operations
   checkGitStatus,
   createWorktree,

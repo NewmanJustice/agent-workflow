@@ -386,4 +386,87 @@ describe('parallel-features', () => {
       assert.strictEqual(typeof parallel.mergeBranch, 'function');
     });
   });
+
+  describe('confirmation safeguard', () => {
+    it('T-CF-1.1: buildConfirmMessage returns string', () => {
+      if (!parallel) return;
+      const msg = parallel.buildConfirmMessage(['a', 'b'], { maxConcurrency: 3 });
+      assert.strictEqual(typeof msg, 'string');
+      assert.ok(msg.includes('worktree'));
+    });
+
+    it('T-CF-1.2: buildConfirmMessage shows feature count', () => {
+      if (!parallel) return;
+      const msg = parallel.buildConfirmMessage(['a', 'b', 'c'], { maxConcurrency: 3 });
+      assert.ok(msg.includes('3'));
+    });
+
+    it('T-CF-1.3: promptConfirm is exported', () => {
+      if (!parallel) return;
+      assert.strictEqual(typeof parallel.promptConfirm, 'function');
+    });
+  });
+
+  describe('lock safeguard', () => {
+    it('T-LK-1.1: LOCK_FILE constant is defined', () => {
+      if (!parallel) return;
+      assert.strictEqual(parallel.LOCK_FILE, '.claude/parallel.lock');
+    });
+
+    it('T-LK-1.2: acquireLock returns object with acquired property', () => {
+      if (!parallel) return;
+      // Clean up any existing lock first
+      parallel.releaseLock();
+      const result = parallel.acquireLock(['test']);
+      assert.strictEqual(typeof result.acquired, 'boolean');
+      parallel.releaseLock(); // Clean up
+    });
+
+    it('T-LK-1.3: releaseLock is exported', () => {
+      if (!parallel) return;
+      assert.strictEqual(typeof parallel.releaseLock, 'function');
+    });
+
+    it('T-LK-1.4: getLockInfo returns null when no lock', () => {
+      if (!parallel) return;
+      parallel.releaseLock();
+      const info = parallel.getLockInfo();
+      assert.strictEqual(info, null);
+    });
+
+    it('T-LK-1.5: getLockInfo returns lock data when locked', () => {
+      if (!parallel) return;
+      parallel.releaseLock();
+      parallel.acquireLock(['test-feat']);
+      const info = parallel.getLockInfo();
+      assert.ok(info);
+      assert.strictEqual(info.pid, process.pid);
+      assert.ok(info.features.includes('test-feat'));
+      parallel.releaseLock(); // Clean up
+    });
+  });
+
+  describe('logging safeguard', () => {
+    it('T-LG-1.1: createLogStream is exported', () => {
+      if (!parallel) return;
+      assert.strictEqual(typeof parallel.createLogStream, 'function');
+    });
+
+    it('T-LG-1.2: logWithTimestamp is exported', () => {
+      if (!parallel) return;
+      assert.strictEqual(typeof parallel.logWithTimestamp, 'function');
+    });
+  });
+
+  describe('abort safeguard', () => {
+    it('T-AB-1.1: abortParallel is exported', () => {
+      if (!parallel) return;
+      assert.strictEqual(typeof parallel.abortParallel, 'function');
+    });
+
+    it('T-AB-1.2: setupAbortHandler is exported', () => {
+      if (!parallel) return;
+      assert.strictEqual(typeof parallel.setupAbortHandler, 'function');
+    });
+  });
 });
