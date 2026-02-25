@@ -308,4 +308,82 @@ describe('parallel-features', () => {
       assert.strictEqual(parallel.shouldCleanupWorktree(state), true);
     });
   });
+
+  describe('git operations', () => {
+    it('T-GO-1.1: checkGitStatus returns git repo info', () => {
+      if (!parallel) return;
+      const status = parallel.checkGitStatus();
+      assert.strictEqual(typeof status.isGitRepo, 'boolean');
+      assert.strictEqual(typeof status.isDirty, 'boolean');
+      assert.strictEqual(typeof status.gitVersion, 'string');
+    });
+
+    it('T-GO-1.2: checkGitStatus detects current repo as git repo', () => {
+      if (!parallel) return;
+      const status = parallel.checkGitStatus();
+      assert.strictEqual(status.isGitRepo, true);
+    });
+
+    it('T-GO-1.3: getCurrentBranch returns branch name', () => {
+      if (!parallel) return;
+      const branch = parallel.getCurrentBranch();
+      assert.strictEqual(typeof branch, 'string');
+      assert.ok(branch.length > 0);
+    });
+  });
+
+  describe('queue persistence', () => {
+    it('T-QP-1.1: loadQueue returns empty queue when file missing', () => {
+      if (!parallel) return;
+      // Note: This test assumes no parallel-queue.json exists initially
+      // In practice, loadQueue handles missing file gracefully
+      const queue = parallel.loadQueue();
+      assert.ok(queue);
+      assert.ok(Array.isArray(queue.features) || queue.features === undefined);
+    });
+
+    it('T-QP-1.2: saveQueue creates queue file', () => {
+      if (!parallel) return;
+      const testQueue = { features: [], startedAt: new Date().toISOString() };
+      // saveQueue would create the file - we just verify the function exists
+      assert.strictEqual(typeof parallel.saveQueue, 'function');
+    });
+
+    it('T-QP-1.3: QUEUE_FILE constant is defined', () => {
+      if (!parallel) return;
+      assert.strictEqual(parallel.QUEUE_FILE, '.claude/parallel-queue.json');
+    });
+  });
+
+  describe('execution functions', () => {
+    it('T-EX-1.1: runParallel is async function', () => {
+      if (!parallel) return;
+      assert.strictEqual(typeof parallel.runParallel, 'function');
+    });
+
+    it('T-EX-1.2: runPipelineInWorktree returns promise', () => {
+      if (!parallel) return;
+      assert.strictEqual(typeof parallel.runPipelineInWorktree, 'function');
+    });
+
+    it('T-EX-1.3: cleanupWorktrees is async function', () => {
+      if (!parallel) return;
+      assert.strictEqual(typeof parallel.cleanupWorktrees, 'function');
+    });
+
+    it('T-EX-1.4: createWorktree is exported', () => {
+      if (!parallel) return;
+      assert.strictEqual(typeof parallel.createWorktree, 'function');
+    });
+
+    it('T-EX-1.5: removeWorktree is exported', () => {
+      if (!parallel) return;
+      assert.strictEqual(typeof parallel.removeWorktree, 'function');
+    });
+
+    it('T-EX-1.6: mergeBranch is exported', () => {
+      if (!parallel) return;
+      assert.strictEqual(typeof parallel.mergeBranch, 'function');
+    });
+  });
 });

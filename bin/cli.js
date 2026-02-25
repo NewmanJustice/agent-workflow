@@ -13,7 +13,14 @@ const {
   resetConfig: resetFeedbackConfig
 } = require('../src/feedback');
 const { displayFeedbackInsights } = require('../src/insights');
-const { formatStatus, getDefaultConfig, splitByLimit } = require('../src/parallel');
+const {
+  formatStatus,
+  getDefaultConfig,
+  splitByLimit,
+  runParallel,
+  loadQueue,
+  cleanupWorktrees
+} = require('../src/parallel');
 
 const args = process.argv.slice(2);
 const command = args[0];
@@ -131,33 +138,41 @@ const commands = {
     description: 'Manage feedback loop configuration'
   },
   parallel: {
-    fn: () => {
+    fn: async () => {
       if (subArg === 'status') {
-        const queuePath = '.claude/parallel-queue.json';
-        const fs = require('fs');
-        if (!fs.existsSync(queuePath)) {
+        const queue = loadQueue();
+        if (!queue.features || queue.features.length === 0) {
           console.log('No parallel pipelines active.');
           return;
         }
-        const states = JSON.parse(fs.readFileSync(queuePath, 'utf8'));
-        console.log(formatStatus(states));
+        console.log('Parallel Pipeline Status\n');
+        console.log(formatStatus(queue.features));
+        const summary = {
+          running: queue.features.filter(f => f.status === 'parallel_running').length,
+          pending: queue.features.filter(f => f.status === 'parallel_queued').length,
+          completed: queue.features.filter(f => f.status === 'parallel_complete').length,
+          failed: queue.features.filter(f => f.status === 'parallel_failed').length,
+          conflicts: queue.features.filter(f => f.status === 'merge_conflict').length
+        };
+        console.log(`\nRunning: ${summary.running} | Pending: ${summary.pending} | Completed: ${summary.completed} | Failed: ${summary.failed} | Conflicts: ${summary.conflicts}`);
+      } else if (subArg === 'cleanup') {
+        const cleaned = await cleanupWorktrees();
+        console.log(`Cleaned ${cleaned} worktree(s).`);
       } else {
         const slugs = args.slice(1).filter(a => !a.startsWith('--'));
         if (slugs.length === 0) {
-          console.error('Usage: parallel <slug1> <slug2> ... [--max-concurrency=N]');
+          console.error('Usage: orchestr8 parallel <slug1> <slug2> ... [--max-concurrency=N]');
+          console.error('       orchestr8 parallel status');
+          console.error('       orchestr8 parallel cleanup');
           process.exit(1);
         }
         const maxFlag = args.find(a => a.startsWith('--max-concurrency='));
-        const config = getDefaultConfig();
+        const options = {};
         if (maxFlag) {
-          config.maxConcurrency = parseInt(maxFlag.split('=')[1], 10);
+          options.maxConcurrency = parseInt(maxFlag.split('=')[1], 10);
         }
-        const { active, queued } = splitByLimit(slugs, config.maxConcurrency);
-        console.log(`Starting parallel pipelines (max ${config.maxConcurrency} concurrent):`);
-        console.log(`  Active: ${active.join(', ')}`);
-        if (queued.length > 0) {
-          console.log(`  Queued: ${queued.join(', ')}`);
-        }
+        const result = await runParallel(slugs, options);
+        process.exit(result.success ? 0 : 1);
       }
     },
     description: 'Run multiple feature pipelines in parallel using git worktrees'
@@ -198,6 +213,7 @@ Commands:
   feedback-config reset Reset feedback configuration to defaults
   parallel <slugs...>   Run multiple feature pipelines in parallel
   parallel status       Show status of all parallel pipelines
+  parallel cleanup      Remove completed/aborted worktrees
   help                  Show this help message
 
 Examples:
