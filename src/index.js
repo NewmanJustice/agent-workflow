@@ -41,6 +41,15 @@ const {
   buildQueueState,
   generateBusinessContextDirective
 } = require('./business-context');
+const {
+  classifyFeature,
+  parseStoryFlags,
+  shouldIncludeStories,
+  buildClassifiedQueueState,
+  logClassification,
+  TECHNICAL_KEYWORDS,
+  USER_FACING_KEYWORDS
+} = require('./classifier');
 const tools = require('./tools');
 
 module.exports = {
@@ -88,6 +97,14 @@ module.exports = {
   shouldIncludeBusinessContext,
   buildQueueState,
   generateBusinessContextDirective,
+  // Classifier module exports (smart story routing)
+  classifyFeature,
+  parseStoryFlags,
+  shouldIncludeStories,
+  buildClassifiedQueueState,
+  logClassification,
+  TECHNICAL_KEYWORDS,
+  USER_FACING_KEYWORDS,
   // Tools module (model native features)
   tools
 };
