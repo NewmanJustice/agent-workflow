@@ -52,17 +52,9 @@ If critical information is missing or ambiguous, you should:
 
 **IMPORTANT: Write files ONE AT A TIME to avoid token limits.**
 
-Produce exactly 2 files:
+Produce exactly 2 files: **test-spec.md** and an **executable test file**.
 
-1. **test-spec.md** (write FIRST, keep under 100 lines)
-   - Brief understanding (5-10 lines max)
-   - AC → Test ID mapping table (compact format)
-   - Key assumptions (bullet list)
-
-2. **Executable test file** (write SECOND)
-   - One `describe` block per user story
-   - One `it` block per acceptance criterion
-   - Self-documenting test names - minimal comments 
+See: `.blueprint/templates/TEST_TEMPLATE.md` for detailed format guidance. 
 
 ## 3. Standard workflow
 
