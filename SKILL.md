@@ -28,8 +28,9 @@ description: Run the Alex → Cass → Nigel → Codey pipeline using Task tool 
 ## Invocation
 
 ```bash
-/implement-feature                                    # Interactive
+/implement-feature                                    # Interactive slug prompt
 /implement-feature "user-auth"                        # New feature
+/implement-feature "user-auth" --interactive          # Force interactive spec creation
 /implement-feature "user-auth" --pause-after=alex|cass|nigel|codey-plan
 /implement-feature "user-auth" --no-commit
 /implement-feature "user-auth" --no-feedback          # Skip feedback collection
@@ -112,6 +113,39 @@ If not provided: Ask user, convert to slug format (lowercase, hyphens), confirm.
 
 ### Step 3: System Spec Gate
 Check `{SYS_SPEC}` exists. If not: run Alex to create it, then **stop for review**.
+
+### Step 3a: Interactive Mode Detection
+
+**Module:** `src/interactive.js`
+
+The pipeline automatically enters interactive mode when:
+1. `--interactive` flag is explicitly passed
+2. System spec (`{SYS_SPEC}`) is missing - creates system spec interactively
+3. Feature spec (`{FEAT_SPEC}`) is missing - creates feature spec interactively
+
+**Interactive Session Flow:**
+```
+idle → gathering → questioning → drafting → finalizing
+```
+
+**Available Commands During Session:**
+| Command | Action |
+|---------|--------|
+| `/approve` or `yes` | Mark section complete, proceed to next |
+| `/change <feedback>` | Revise current section with feedback |
+| `/skip` | Mark section TBD, proceed to next |
+| `/restart` | Discard draft, restart current section |
+| `/abort` | Exit without writing spec |
+| `/done` | Finalize spec (if min sections complete) |
+
+**Minimum Required Sections:**
+- Feature spec: Intent, Scope, Actors
+- System spec: Purpose, Actors, Boundaries
+
+**On Interactive Completion:**
+- Writes spec to appropriate path
+- Generates `handoff-alex.md` with session metrics
+- Records `mode: "interactive"` in history entry
 
 ### Step 3.5: Insights Preview (NEW)
 

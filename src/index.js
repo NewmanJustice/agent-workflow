@@ -50,6 +50,28 @@ const {
   TECHNICAL_KEYWORDS,
   USER_FACING_KEYWORDS
 } = require('./classifier');
+const {
+  parseFlags: parseInteractiveFlags,
+  shouldEnterInteractiveMode,
+  createSession,
+  getSessionProgress,
+  handleCommand,
+  getNextSection,
+  markSectionComplete,
+  markSectionTBD,
+  gatherContext,
+  identifyGaps,
+  generateQuestions,
+  canFinalize,
+  generateSpec,
+  writeSpec,
+  generateHandoff,
+  getOutputPath,
+  SESSION_STATES,
+  SECTION_ORDER,
+  MIN_REQUIRED_SECTIONS,
+  SYSTEM_SPEC_QUESTIONS
+} = require('./interactive');
 const tools = require('./tools');
 
 module.exports = {
@@ -106,5 +128,26 @@ module.exports = {
   TECHNICAL_KEYWORDS,
   USER_FACING_KEYWORDS,
   // Tools module (model native features)
-  tools
+  tools,
+  // Interactive mode exports
+  parseInteractiveFlags,
+  shouldEnterInteractiveMode,
+  createSession,
+  getSessionProgress,
+  handleCommand,
+  getNextSection,
+  markSectionComplete,
+  markSectionTBD,
+  gatherContext,
+  identifyGaps,
+  generateQuestions,
+  canFinalize,
+  generateSpec,
+  writeSpec,
+  generateHandoff,
+  getOutputPath,
+  SESSION_STATES,
+  SECTION_ORDER,
+  MIN_REQUIRED_SECTIONS,
+  SYSTEM_SPEC_QUESTIONS
 };
