@@ -23,6 +23,7 @@ Step 2: Write {TEST_FILE} containing:
 
 ## Rules
 
+- Follow the shared constraints in `.blueprint/agents/GUARDRAILS.md` (source restrictions, confidentiality, citations)
 - Write test-spec.md FIRST, then write test file
 - Keep test-spec.md under 100 lines using table format
 - Tests should be self-documenting with minimal comments

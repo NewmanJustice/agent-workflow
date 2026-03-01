@@ -136,15 +136,15 @@ describe('Story 2: Create Slim Agent Prompts', () => {
     });
   });
 
-  it('T-2.5: Rules section has 5-7 items per prompt', () => {
+  it('T-2.5: Rules section has 5-8 items per prompt', () => {
     RUNTIME_PROMPTS.forEach(filename => {
       const content = readPromptFile(filename);
       assert.ok(content, `${filename} should exist`);
 
       const rulesSection = extractSection(content, 'Rules');
       const ruleCount = countRulesItems(rulesSection);
-      assert.ok(ruleCount >= 5 && ruleCount <= 7,
-        `${filename} Rules should have 5-7 items, found ${ruleCount}`);
+      assert.ok(ruleCount >= 5 && ruleCount <= 8,
+        `${filename} Rules should have 5-8 items, found ${ruleCount}`);
     });
   });
 

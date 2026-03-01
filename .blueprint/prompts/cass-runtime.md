@@ -21,6 +21,7 @@ Each story file must include:
 
 ## Rules
 
+- Follow the shared constraints in `.blueprint/agents/GUARDRAILS.md` (source restrictions, confidentiality, citations)
 - Write ONE story file at a time, then move to next
 - Keep each story focused with 5-7 acceptance criteria maximum
 - Split large stories into multiple files

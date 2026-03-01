@@ -1,7 +1,6 @@
 # Guardrails
 
-### Always follow .blueprint/ways_of_working/DEVELOPMENT_RITUAL.md
-Without exception, everyone in the team follows the DEVELOPMENT_RITUAL.md. All members can suggest changes to the DEVELOPMENT_RITUAL.md.
+All agents must follow the development ritual defined in `.blueprint/ways_of_working/DEVELOPMENT_RITUAL.md`.
 
 ---
 
@@ -21,13 +20,21 @@ You describe *observable behaviour*. You do not unilaterally redefine product re
 
 ---
 
-## Handling Ambiguity
+## Handling Ambiguity and Escalation
 
-### When Information is Missing
-If critical information is missing or ambiguous:
-1. **Call it out explicitly** — do not silently fill gaps
-2. **Propose a sensible default** that is safe, reversible, and clearly labelled
-3. **Ask the human** for clarification when the risk of being wrong is high
+When information is missing or ambiguous:
+
+1. **Low risk** — proceed with an explicit assumption labelled `ASSUMPTION: [statement]`
+2. **Medium risk** — propose a sensible default that is safe, reversible, and clearly labelled
+3. **High risk** — escalate to the human for clarification
+
+Always escalate when:
+- Critical information is missing and cannot be safely assumed
+- Inputs are ambiguous with multiple valid interpretations — list options and ask for clarification
+- Source documents conflict — cite both sources and request resolution
+- Output would require violating confidentiality constraints
+
+When escalation is not warranted, you may proceed with an explicit assumption labelled as such.
 
 Never proceed silently when requirements are unclear.
 
@@ -39,47 +46,38 @@ All agents must avoid:
 - **Inventing requirements** — do not add behaviour that hasn't been discussed without flagging it as a suggestion
 - **Silent gap-filling** — do not guess when requirements are unclear; surface the ambiguity
 - **Changing behaviour for convenience** — do not alter expected behaviour to make testing or implementation "easier"
-- **Hidden assumptions** — state assumptions explicitly; do not embed them silently in outputs
+- **Hidden assumptions** — state assumptions explicitly using `ASSUMPTION: [statement]` or `NOTE: Assuming...`; distinguish clearly between cited facts and inferred assumptions; if information is not available, state so rather than guessing
 
 ---
 
+## Information Governance
+
 ### Allowed Sources
-You may use ONLY information from these sources:
-- System specification (`.blueprint/system_specification/SYSTEM_SPEC.md`)
-- Feature specifications (`.blueprint/features/*/FEATURE_SPEC.md`)
-- User stories (`story-*.md`) and test artifacts (`test-spec.md`, `*.test.js`)
-- Implementation code in the project
-- Business context (`.business_context/*`)
-- Templates (`.blueprint/templates/*`) and agent specifications
+You may use ONLY information from these project sources:
+- **Specifications** — system spec, feature specs, user stories, test artifacts
+- **Implementation** — existing project source code and tests
+- **Business context** — files in `.business_context/`
+- **Framework configuration** — agent specs, templates, ways of working, stack config (`.claude/stack-config.json`)
+
+Standard language and framework documentation is acceptable for implementation guidance. Domain-specific facts must come from project sources.
 
 ### Prohibited Sources
 Do not use:
 - Social media, forums, blog posts, or external APIs
-- Training data for domain facts—do not invent business rules
+- Training data for domain facts — do not invent business rules
 - External project or company references by name
 
-### Citation Requirements
-- Cite sources using: "Per [filename]: [claim]" or "[filename:section] states..."
-- Use section-level citations where feasible (e.g., "story-login.md:AC-3")
+### Citation and Traceability
+- Reference source files when making claims (e.g., "Per story-login.md: ..." or "AC-3 states...")
+- Maintain a traceable chain: downstream artifacts should cite upstream sources
 - Reference `.business_context/` files for domain definitions
-- Maintain a traceable chain: downstream artifacts cite upstream sources
-
-### Assumptions vs Facts
-- Label assumptions explicitly: "ASSUMPTION: [statement]" or "NOTE: Assuming..."
-- Distinguish clearly between cited facts and assumptions
-- Do not guess—state "This information is not available in the provided inputs"
 
 ### Confidentiality
-- Do not reproduce `.business_context/` content verbatim; summarise or use generic descriptions
-- Do not reference external entities, companies, or projects by name
+- Treat `.business_context/` content as potentially sensitive — summarise rather than reproduce verbatim
+- Do not reference external entities, companies, or projects by name unless they appear in project sources
 - Do not use external services that would expose project data
 - Outputs must be self-contained and understandable without access to confidential sources
 
-### Escalation Protocol
-Escalate to the user when:
-- Critical information is missing and cannot be safely assumed
-- Inputs are ambiguous with multiple possible interpretations—list options and ask for clarification
-- Source documents conflict—cite both sources and request resolution
-- Output would require violating confidentiality constraints
+---
 
-When escalation is not warranted, you may proceed with an explicit assumption labelled as such.
+*Last updated: v3.4.0*

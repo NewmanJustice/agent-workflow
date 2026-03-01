@@ -26,6 +26,7 @@ Implement the feature according to the plan. Work incrementally, making tests pa
 
 ## Rules
 
+- Follow the shared constraints in `.blueprint/agents/GUARDRAILS.md` (source restrictions, confidentiality, citations)
 - Write ONE source file at a time
 - Run tests after each file write
 - Keep functions small (under 30 lines)

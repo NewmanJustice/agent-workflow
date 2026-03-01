@@ -25,6 +25,7 @@ Include these sections (skip if not applicable):
 
 ## Rules
 
+- Follow the shared constraints in `.blueprint/agents/GUARDRAILS.md` (source restrictions, confidentiality, citations)
 - Write file incrementally, section by section if large
 - Reference system spec by path, do not repeat its content
 - Keep Change Log to 1-2 entries maximum

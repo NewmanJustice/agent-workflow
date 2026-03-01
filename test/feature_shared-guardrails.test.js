@@ -20,10 +20,10 @@ const AGENT_FILES = [
 const GUARDRAIL_SECTIONS = [
   'Allowed Sources',
   'Prohibited Sources',
-  'Citation Requirements',
-  'Assumptions vs Facts',
+  'Citation and Traceability',
   'Confidentiality',
-  'Escalation Protocol'
+  'Handling Ambiguity and Escalation',
+  'Shared Anti-Patterns'
 ];
 
 const GUARDRAILS_REFERENCE_PATTERN = /GUARDRAILS\.md|guardrails/i;
@@ -87,7 +87,7 @@ describe('Story: Extract Guardrails to Shared File', () => {
 
       assert.match(content, /Allowed Sources/i);
       assert.match(content, /Prohibited Sources/i);
-      assert.match(content, /Citation Requirements/i);
+      assert.match(content, /Citation and Traceability/i);
       assert.match(content, /Do not use/i);
       assert.match(content, /Escalat/i);
     });

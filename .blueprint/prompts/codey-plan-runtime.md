@@ -23,6 +23,7 @@ Plan structure (aim for under 80 lines total):
 
 ## Rules
 
+- Follow the shared constraints in `.blueprint/agents/GUARDRAILS.md` (source restrictions, confidentiality, citations)
 - Do NOT write implementation code in this phase
 - Keep plan concise and actionable
 - Order steps to make tests pass incrementally
