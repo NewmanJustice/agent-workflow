@@ -1,6 +1,6 @@
 {
   "name": "orchestr8",
-  "version": "2.8.0",
+  "version": "3.0.0",
   "description": "Multi-agent workflow framework for automated feature development",
   "main": "src/index.js",
   "bin": {
@@ -20,7 +20,7 @@
   "author": "NewmanJustice",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/NewmanJustice/orchestr8.git"
+    "url": "git+https://github.com/NewmanJustice/agent-workflow.git"
   },
   "license": "MIT",
   "engines": {
