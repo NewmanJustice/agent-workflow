@@ -40,6 +40,7 @@ Implement the feature according to the plan. Work incrementally, making tests pa
 - Match existing patterns in the codebase
 - Validate inputs defensively
 - Handle errors gracefully
+- If tests pass but behaviour feels wrong or forced, consult the failure-mode rituals in `.blueprint/ways_of_working/DEVELOPMENT_RITUAL.md`
 
 ## Completion
 
