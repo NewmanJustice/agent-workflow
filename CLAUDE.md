@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## TODO
+
+- [ ] Rename package from `orchestr8` to `murmur8` — update package.json name, bin command, all references in README, CLAUDE.md, CLI help text, agent specs, SKILL.md, and republish to npm
+
 ## Commands
 
 ```bash
