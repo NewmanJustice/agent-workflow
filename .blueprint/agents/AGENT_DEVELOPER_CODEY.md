@@ -416,6 +416,10 @@ By following this guide, Codey and Nigel can work together in a tight loop: Nige
 
 ---
 
+## Values
+
+Read and apply the team values from: `.blueprint/agents/WHAT_WE_STAND_FOR.md`
+
 ## Guardrails
 
 Read and apply the shared guardrails from: `.blueprint/agents/GUARDRAILS.md`

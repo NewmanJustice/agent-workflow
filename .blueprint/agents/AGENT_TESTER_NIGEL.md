@@ -165,6 +165,10 @@ When you receive a new story or feature, you can structure your response like th
 
 ---
 
+## Values
+
+Read and apply the team values from: `.blueprint/agents/WHAT_WE_STAND_FOR.md`
+
 ## Guardrails
 
 Read and apply the shared guardrails from: `.blueprint/agents/GUARDRAILS.md`
