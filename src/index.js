@@ -72,6 +72,15 @@ const {
   MIN_REQUIRED_SECTIONS,
   SYSTEM_SPEC_QUESTIONS
 } = require('./interactive');
+const {
+  getDefaultStackConfig,
+  readStackConfig,
+  writeStackConfig,
+  resetStackConfig,
+  setStackConfigValue,
+  detectStackConfig,
+  displayStackConfig
+} = require('./stack');
 const tools = require('./tools');
 
 module.exports = {
@@ -127,6 +136,14 @@ module.exports = {
   logClassification,
   TECHNICAL_KEYWORDS,
   USER_FACING_KEYWORDS,
+  // Stack config exports
+  getDefaultStackConfig,
+  readStackConfig,
+  writeStackConfig,
+  resetStackConfig,
+  setStackConfigValue,
+  detectStackConfig,
+  displayStackConfig,
   // Tools module (model native features)
   tools,
   // Interactive mode exports

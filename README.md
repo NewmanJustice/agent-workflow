@@ -19,6 +19,32 @@ npx orchestr8 init
 
 This installs the `.blueprint/` directory, `.business_context/`, and the `/implement-feature` skill to `.claude/commands/`. If files already exist, you'll be prompted before overwriting. It also adds the workflow queue to `.gitignore`.
 
+During initialization, orchestr8 **auto-detects your project's tech stack** from manifest files (`package.json`, `pyproject.toml`, `go.mod`, etc.) and writes the result to `.claude/stack-config.json`. The agents (Nigel and Codey) read this file at runtime to adapt their testing and implementation approach to your stack.
+
+```bash
+# Review what was detected
+npx orchestr8 stack-config
+
+# Adjust if needed
+npx orchestr8 stack-config set language TypeScript
+npx orchestr8 stack-config set frameworks '["next","react"]'
+npx orchestr8 stack-config set testRunner vitest
+npx orchestr8 stack-config set testCommand "npx vitest run"
+```
+
+If you're working with a non-JavaScript project, set the stack config before running the pipeline:
+
+```bash
+# Python/Django example
+npx orchestr8 stack-config set language Python
+npx orchestr8 stack-config set runtime "Python 3.12"
+npx orchestr8 stack-config set packageManager pip
+npx orchestr8 stack-config set frameworks '["django"]'
+npx orchestr8 stack-config set testRunner pytest
+npx orchestr8 stack-config set testCommand "pytest"
+npx orchestr8 stack-config set linter ruff
+```
+
 ## Keeping Up to Date
 
 **Modules** (history, insights, feedback, retry, validate) are part of the npm package and update automatically when you use `npx` - no action needed.
@@ -70,6 +96,9 @@ This updates `.blueprint/agents/`, `.blueprint/templates/`, `.blueprint/ways_of_
 
 | Command | Description |
 |---------|-------------|
+| `npx orchestr8 stack-config` | View detected tech stack |
+| `npx orchestr8 stack-config set <key> <value>` | Modify stack settings (language, frameworks, testRunner, etc.) |
+| `npx orchestr8 stack-config reset` | Reset to empty defaults |
 | `npx orchestr8 retry-config` | View retry configuration |
 | `npx orchestr8 retry-config set <key> <value>` | Modify retry settings |
 | `npx orchestr8 retry-config reset` | Reset to defaults |
@@ -197,6 +226,7 @@ orchestr8 includes these built-in modules for observability and self-improvement
 | **business-context** | Lazy loading of business context based on feature needs |
 | **tools** | Tool schemas and validation for Claude native features |
 | **parallel** | Parallel pipeline execution using git worktrees |
+| **stack** | Configurable tech stack detection and configuration |
 
 ### How They Work Together
 
@@ -260,6 +290,7 @@ your-project/
 │   ├── feedback-config.json       # Feedback thresholds (gitignored)
 │   ├── parallel-config.json       # Parallel execution config (gitignored)
 │   ├── parallel-queue.json        # Parallel pipeline state (gitignored)
+│   ├── stack-config.json          # Tech stack configuration (gitignored)
 │   └── implement-queue.json       # Pipeline queue state (gitignored)
 └── test/
     ├── artifacts/                 # Test specs per feature

@@ -11,7 +11,7 @@ Implement the feature according to the plan. Work incrementally, making tests pa
 
 ## Process (INCREMENTAL - one file at a time)
 
-1. Run tests first: node --test {TEST_FILE}
+1. Run tests using the project's test command (see `.claude/stack-config.json`)
 2. For each failing test group:
    a. Identify the minimal code needed
    b. Write or edit ONE file

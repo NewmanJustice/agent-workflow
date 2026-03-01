@@ -2,6 +2,8 @@ const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
 
+const { detectStackConfig, writeStackConfig, CONFIG_FILE: STACK_CONFIG_FILE } = require('./stack');
+
 const PACKAGE_ROOT = path.resolve(__dirname, '..');
 const TARGET_DIR = process.cwd();
 
@@ -41,7 +43,8 @@ function updateGitignore() {
   const entriesToAdd = [
     '# agent-workflow',
     '.claude/implement-queue.json',
-    '.claude/pipeline-history.json'
+    '.claude/pipeline-history.json',
+    '.claude/stack-config.json'
   ];
 
   let content = '';
@@ -109,12 +112,27 @@ async function init() {
   // Update .gitignore
   updateGitignore();
 
+  // Auto-detect tech stack
+  const stackConfigPath = path.join(TARGET_DIR, STACK_CONFIG_FILE);
+  if (!fs.existsSync(stackConfigPath)) {
+    const detected = detectStackConfig(TARGET_DIR);
+    const hasValues = detected.language || detected.runtime;
+    if (hasValues) {
+      writeStackConfig(detected);
+      const parts = [detected.language, detected.runtime, ...detected.frameworks, detected.testRunner].filter(Boolean);
+      console.log(`Detected tech stack: ${parts.join(', ')}`);
+    }
+  } else {
+    console.log('Stack config already exists, skipping detection');
+  }
+
   console.log(`
 orchestr8 initialized successfully!
 
 Next steps:
-1. Add business context documents to .business_context/
-2. Run /implement-feature in Claude Code to start your first feature
+1. Review your tech stack with \`npx orchestr8 stack-config\`
+2. Add business context documents to .business_context/
+3. Run /implement-feature in Claude Code to start your first feature
 `);
 }
 

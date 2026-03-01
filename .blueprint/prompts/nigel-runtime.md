@@ -17,7 +17,7 @@ Step 1: Write {TEST_DIR}/test-spec.md containing:
 - Key assumptions (bullet list)
 
 Step 2: Write {TEST_FILE} containing:
-- Executable tests (Jest or Node test runner)
+- Executable tests using the project's test runner (see `.claude/stack-config.json`)
 - One describe block per story
 - One test per acceptance criterion
 

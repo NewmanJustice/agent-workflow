@@ -36,14 +36,22 @@ node bin/cli.js insights --feedback # Feedback correlation
 node bin/cli.js retry-config        # View retry settings
 node bin/cli.js feedback-config     # View feedback thresholds
 node bin/cli.js parallel-config     # View parallel settings
+node bin/cli.js stack-config        # View tech stack settings
+node bin/cli.js stack-config set language Python  # Set a value
+node bin/cli.js stack-config reset  # Reset to defaults
 
 # Parallel execution
 node bin/cli.js parallel feat-a feat-b     # Run multiple features in parallel
 node bin/cli.js parallel feat-a --dry-run  # Preview execution plan
+node bin/cli.js parallel feat-a --yes      # Skip confirmation prompt
+node bin/cli.js parallel feat-a --verbose  # Stream output to console
+node bin/cli.js parallel feat-a --skip-preflight  # Skip validation
 node bin/cli.js parallel status            # Show pipeline status
 node bin/cli.js parallel status --detailed # Show progress bars
 node bin/cli.js parallel abort             # Stop running pipelines
+node bin/cli.js parallel abort --cleanup   # Stop and remove worktrees
 node bin/cli.js parallel rollback          # Undo completed merges
+node bin/cli.js parallel rollback --dry-run  # Preview rollback
 node bin/cli.js parallel cleanup           # Remove completed worktrees
 ```
 
@@ -67,6 +75,8 @@ orchestr8 is a multi-agent workflow framework that coordinates four AI agents (A
 - `src/handoff.js` - Structured summaries between agents for token efficiency
 - `src/business-context.js` - Lazy loading of business context based on feature needs
 - `src/parallel.js` - Parallel pipeline execution using git worktrees
+- `src/interactive.js` - Interactive mode for spec creation (system spec or feature spec)
+- `src/stack.js` - Configurable tech stack detection and configuration
 - `src/tools/` - Tool schemas, validation, and prompts for Claude native features
 
 ### Bundled Assets
@@ -90,6 +100,7 @@ Alex (feature spec) → [Cass (user stories)] → Nigel (tests) → Codey (plan 
 
 Invocation options:
 - `/implement-feature "slug"` - Run full pipeline
+- `/implement-feature "slug" --interactive` - Force interactive spec creation mode
 - `/implement-feature "slug" --pause-after=alex|cass|nigel|codey-plan` - Pause at stage for review
 - `/implement-feature "slug" --no-commit` - Skip auto-commit at end
 - `/implement-feature "slug" --no-feedback` - Skip feedback collection
@@ -115,7 +126,8 @@ Each feature gets an isolated worktree in `.claude/worktrees/feat-{slug}/`. Succ
 
 - User content directories (`features/`, `system_specification/`) are preserved during `update`
 - Framework directories (`agents/`, `templates/`, `ways_of_working/`) are replaced during `update`
-- State files are gitignored: `implement-queue.json`, `pipeline-history.json`, `retry-config.json`, `feedback-config.json`, `parallel-config.json`, `parallel-queue.json`
+- State files are gitignored: `implement-queue.json`, `pipeline-history.json`, `retry-config.json`, `feedback-config.json`, `parallel-config.json`, `parallel-queue.json`, `stack-config.json`
+- Test files follow `test/feature_{slug}.test.js` naming convention
 
 ## Token Limit Handling
 

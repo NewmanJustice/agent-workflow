@@ -12,6 +12,11 @@ const {
   setConfigValue: setFeedbackConfigValue,
   resetConfig: resetFeedbackConfig
 } = require('../src/feedback');
+const {
+  displayStackConfig,
+  setStackConfigValue,
+  resetStackConfig
+} = require('../src/stack');
 const { displayFeedbackInsights } = require('../src/insights');
 const {
   formatStatus,
@@ -144,6 +149,26 @@ const commands = {
       }
     },
     description: 'Manage feedback loop configuration'
+  },
+  'stack-config': {
+    fn: () => {
+      if (subArg === 'set') {
+        const key = args[2];
+        const value = args[3];
+        if (!key || !value) {
+          console.error('Usage: stack-config set <key> <value>');
+          console.error('Valid keys: language, runtime, packageManager, frameworks, testRunner, testCommand, linter, tools');
+          process.exit(1);
+        }
+        setStackConfigValue(key, value);
+      } else if (subArg === 'reset') {
+        resetStackConfig();
+        console.log('Stack configuration reset to defaults.');
+      } else {
+        displayStackConfig();
+      }
+    },
+    description: 'View or modify project tech stack configuration'
   },
   'parallel-config': {
     fn: () => {
@@ -307,6 +332,9 @@ Commands:
   feedback-config       View current feedback loop configuration
   feedback-config set <key> <value>  Modify a config value (minRatingThreshold, enabled)
   feedback-config reset Reset feedback configuration to defaults
+  stack-config          View current tech stack configuration
+  stack-config set <key> <value>  Modify a config value (language, runtime, frameworks, etc.)
+  stack-config reset    Reset tech stack configuration to defaults
   parallel <slugs...>   Run multiple feature pipelines in parallel
   parallel <slugs...> --dry-run  Show execution plan without running
   parallel <slugs...> --yes      Skip confirmation prompt
