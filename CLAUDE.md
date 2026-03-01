@@ -2,10 +2,6 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## TODO
-
-- [ ] Rename package from `orchestr8` to `murmur8` — update package.json name, bin command, all references in README, CLAUDE.md, CLI help text, agent specs, SKILL.md, and republish to npm. Add a line about a murmuration of Starlings and moving together as one in the readme.
-
 ## Commands
 
 ```bash
@@ -61,7 +57,7 @@ node bin/cli.js parallel cleanup           # Remove completed worktrees
 
 ## Architecture
 
-orchestr8 is a multi-agent workflow framework that coordinates four AI agents to automate feature development from specification to implementation.
+murmur8 is a multi-agent workflow framework that coordinates four AI agents to automate feature development from specification to implementation.
 
 ### Agent Team
 
@@ -129,8 +125,8 @@ Queue state is persisted to `.claude/implement-queue.json` for recovery on failu
 Run multiple features simultaneously using git worktrees for isolation:
 
 ```bash
-npx orchestr8 parallel user-auth dashboard notifications --dry-run  # Preview plan
-npx orchestr8 parallel user-auth dashboard notifications            # Execute
+npx murmur8 parallel user-auth dashboard notifications --dry-run  # Preview plan
+npx murmur8 parallel user-auth dashboard notifications            # Execute
 ```
 
 Each feature gets an isolated worktree in `.claude/worktrees/feat-{slug}/`. Successful features auto-merge; conflicts are preserved for manual resolution. Requires Git 2.5+ and clean working tree.

@@ -2,7 +2,7 @@
 
 ## Understanding
 
-The `orchestr8 validate` command performs pre-flight checks to ensure the environment is correctly configured before running the pipeline. It checks for required directories, files, and Node.js version, providing pass/fail status with actionable fix suggestions. The command is idempotent, does not modify state, and returns exit code 0 on success, 1 on failure.
+The `murmur8 validate` command performs pre-flight checks to ensure the environment is correctly configured before running the pipeline. It checks for required directories, files, and Node.js version, providing pass/fail status with actionable fix suggestions. The command is idempotent, does not modify state, and returns exit code 0 on success, 1 on failure.
 
 Key behaviors: sequential checks, graceful error handling, colorized output (with ASCII fallback), and machine-parseable exit codes for CI integration.
 

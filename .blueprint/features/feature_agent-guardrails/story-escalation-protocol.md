@@ -2,7 +2,7 @@
 
 ## User story
 
-As a user of orchestr8, I want agents to escalate to me when they encounter ambiguity or missing information so that I can provide guidance rather than agents guessing incorrectly.
+As a user of murmur8, I want agents to escalate to me when they encounter ambiguity or missing information so that I can provide guidance rather than agents guessing incorrectly.
 
 ---
 

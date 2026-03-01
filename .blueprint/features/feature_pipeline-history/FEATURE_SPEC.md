@@ -4,7 +4,7 @@
 
 **Why this feature exists.**
 
-- **Problem being addressed:** Currently, orchestr8 provides no visibility into historical pipeline executions. Users cannot see which features have been processed, how long each stage took, or identify patterns in failures.
+- **Problem being addressed:** Currently, murmur8 provides no visibility into historical pipeline executions. Users cannot see which features have been processed, how long each stage took, or identify patterns in failures.
 - **User need:** Developers want to understand pipeline performance over time, identify bottlenecks, and diagnose recurring failures. This supports continuous improvement of the feature development process.
 - **System purpose alignment:** Per SYSTEM_SPEC.md:Section 8 (Cross-Cutting Concerns:Observability), the system aims for observability via queue status and agent summaries. This feature extends observability to historical data, enabling retrospective analysis.
 
@@ -18,7 +18,7 @@
 
 - Recording execution metrics for each pipeline run (start/end times, duration per stage, success/failure)
 - Persisting history to a JSON file (`.claude/pipeline-history.json`)
-- New CLI command `orchestr8 history` with subcommands and flags
+- New CLI command `murmur8 history` with subcommands and flags
 - Display of recent runs, aggregate statistics, and failure analysis
 - Clearing history via CLI
 
@@ -53,14 +53,14 @@
 1. User invokes `/implement-feature "slug"` and pipeline executes normally
 2. At each stage transition (Alex, Cass, Nigel, Codey-plan, Codey-implement), timestamps are recorded
 3. On pipeline completion (success or failure), a history entry is written to `.claude/pipeline-history.json`
-4. User runs `orchestr8 history` to view recent executions and statistics
+4. User runs `murmur8 history` to view recent executions and statistics
 
 ### Key alternatives or branches
 
 - **Pipeline paused:** If `--pause-after` is used, history entry is recorded up to the pause point with status `paused`
 - **Pipeline failure:** If a stage fails, history entry records failure stage and status `failed`
 - **No history file:** On first write, file is created with empty array structure
-- **History clear:** User runs `orchestr8 history clear` to remove all entries
+- **History clear:** User runs `murmur8 history clear` to remove all entries
 
 ### User-visible outcomes
 

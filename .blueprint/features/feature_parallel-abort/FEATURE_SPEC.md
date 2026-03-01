@@ -6,7 +6,7 @@ Provide a way to stop all running parallel pipelines and optionally clean up wor
 
 **Problem:** Once parallel pipelines start, there's no clean way to stop them. Users would have to manually find and kill processes, then clean up worktrees.
 
-**Solution:** `orchestr8 parallel abort` command that gracefully stops all pipelines and handles cleanup.
+**Solution:** `murmur8 parallel abort` command that gracefully stops all pipelines and handles cleanup.
 
 ---
 
@@ -30,7 +30,7 @@ Provide a way to stop all running parallel pipelines and optionally clean up wor
 ### Abort (Preserve Worktrees)
 
 ```
-$ orchestr8 parallel abort
+$ murmur8 parallel abort
 
 Stopping parallel pipelines...
 
@@ -43,13 +43,13 @@ Aborted 2 pipelines. Worktrees preserved for debugging:
   • .claude/worktrees/feat-feat-a/
   • .claude/worktrees/feat-feat-b/
 
-To clean up: orchestr8 parallel cleanup
+To clean up: murmur8 parallel cleanup
 ```
 
 ### Abort with Cleanup
 
 ```
-$ orchestr8 parallel abort --cleanup
+$ murmur8 parallel abort --cleanup
 
 Stopping parallel pipelines...
 
@@ -63,7 +63,7 @@ Aborted 1 pipeline. Worktrees removed.
 ### Ctrl+C Handling
 
 ```
-$ orchestr8 parallel feat-a feat-b feat-c
+$ murmur8 parallel feat-a feat-b feat-c
 
 Starting parallel pipelines...
 [10:30:01] feat-a: Started
@@ -75,13 +75,13 @@ Received interrupt signal. Stopping pipelines...
 [10:31:15] feat-a: Stopped
 [10:31:15] feat-b: Stopped
 
-Aborted. Worktrees preserved. Run 'orchestr8 parallel cleanup' to remove.
+Aborted. Worktrees preserved. Run 'murmur8 parallel cleanup' to remove.
 ```
 
 ### Nothing Running
 
 ```
-$ orchestr8 parallel abort
+$ murmur8 parallel abort
 
 No parallel pipelines are currently running.
 ```

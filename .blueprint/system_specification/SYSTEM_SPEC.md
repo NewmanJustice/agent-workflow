@@ -1,8 +1,8 @@
-# System Specification — orchestr8
+# System Specification — murmur8
 
 ## 1. Purpose & Intent
 
-**orchestr8** is a multi-agent workflow framework that automates feature development from specification to implementation. It coordinates four specialized AI agents (Alex, Cass, Nigel, Codey) through a sequential pipeline, ensuring that features are explicitly specified, documented with user stories, tested, and implemented with traceability.
+**murmur8** is a multi-agent workflow framework that automates feature development from specification to implementation. It coordinates four specialized AI agents (Alex, Cass, Nigel, Codey) through a sequential pipeline, ensuring that features are explicitly specified, documented with user stories, tested, and implemented with traceability.
 
 **Why this system exists:**
 - To transform feature ideas into working, tested code through a structured, repeatable process
@@ -27,7 +27,7 @@
 
 ## 2. Business & Domain Context
 
-orchestr8 operates in the domain of AI-assisted software development, specifically within the Claude Code CLI environment.
+murmur8 operates in the domain of AI-assisted software development, specifically within the Claude Code CLI environment.
 
 **Relevant drivers:**
 - Growing adoption of AI coding assistants
@@ -69,7 +69,7 @@ orchestr8 operates in the domain of AI-assisted software development, specifical
 ## 4. Actors & Roles
 
 ### Human User
-- **Description:** Developer invoking orchestr8 commands and the `/implement-feature` skill
+- **Description:** Developer invoking murmur8 commands and the `/implement-feature` skill
 - **Primary goals:** Automate feature development, maintain control over scope and quality
 - **Authority:** Final arbiter on intent, scope, and breaking changes; can pause/abort pipeline
 
@@ -193,7 +193,7 @@ INIT → ALEX → CASS → NIGEL → CODEY_PLAN → CODEY_IMPLEMENT → COMMIT �
 - Queue persists state for recovery
 
 ### Observability
-- Queue status available via `orchestr8 queue`
+- Queue status available via `murmur8 queue`
 - Each agent provides completion summary
 - Commit messages document pipeline execution
 
@@ -245,4 +245,4 @@ INIT → ALEX → CASS → NIGEL → CODEY_PLAN → CODEY_IMPLEMENT → COMMIT �
 
 | Date | Change | Reason | Approved By |
 |------|--------|--------|-------------|
-| 2026-02-24 | Initial system specification | Document orchestr8 v2.5.0 | Alex |
+| 2026-02-24 | Initial system specification | Document murmur8 v2.5.0 | Alex |

@@ -336,7 +336,7 @@ function displayInsights(options = {}) {
   const history = readHistoryFile();
 
   if (history.error === 'corrupted') {
-    console.log("Warning: History file is corrupted. Run 'orchestr8 history clear' to reset.");
+    console.log("Warning: History file is corrupted. Run 'murmur8 history clear' to reset.");
     return;
   }
 

@@ -9,7 +9,7 @@ As a **developer**, I want **CLI commands to view and modify feedback thresholds
 ## Context / Scope
 
 - Per FEATURE_SPEC.md:Section 7, configuration is stored in `.claude/feedback-config.json`
-- Per FEATURE_SPEC.md:Section 7, new CLI commands: `orchestr8 feedback-config` and `orchestr8 feedback-config set <key> <value>`
+- Per FEATURE_SPEC.md:Section 7, new CLI commands: `murmur8 feedback-config` and `murmur8 feedback-config set <key> <value>`
 - Parallel track to quality gates — configuration can be set independently
 
 ---
@@ -17,7 +17,7 @@ As a **developer**, I want **CLI commands to view and modify feedback thresholds
 ## Acceptance Criteria
 
 **AC-1 — View feedback configuration**
-- Given the user runs `orchestr8 feedback-config`,
+- Given the user runs `murmur8 feedback-config`,
 - When the command executes,
 - Then the current configuration is displayed including:
   - `minRatingThreshold` (default: 3.0)
@@ -25,19 +25,19 @@ As a **developer**, I want **CLI commands to view and modify feedback thresholds
   - Any custom issue-to-strategy mappings
 
 **AC-2 — Set threshold value**
-- Given the user runs `orchestr8 feedback-config set minRating <value>`,
+- Given the user runs `murmur8 feedback-config set minRating <value>`,
 - When the value is a number between 1.0 and 5.0,
 - Then the threshold is updated in `.claude/feedback-config.json`,
 - And a confirmation message is displayed.
 
 **AC-3 — Invalid threshold rejected**
-- Given the user runs `orchestr8 feedback-config set minRating <value>`,
+- Given the user runs `murmur8 feedback-config set minRating <value>`,
 - When the value is outside 1.0-5.0 range or not a number,
 - Then an error message is displayed,
 - And the configuration is not modified.
 
 **AC-4 — Enable/disable feedback system**
-- Given the user runs `orchestr8 feedback-config set enabled <true|false>`,
+- Given the user runs `murmur8 feedback-config set enabled <true|false>`,
 - When the command executes,
 - Then the `enabled` flag is updated,
 - And when disabled, feedback collection and quality gates are skipped.
@@ -48,7 +48,7 @@ As a **developer**, I want **CLI commands to view and modify feedback thresholds
 - Then the file is created with default values plus the specified override.
 
 **AC-6 — Configuration file is gitignored**
-- Given a project is initialised with orchestr8,
+- Given a project is initialised with murmur8,
 - When feedback configuration is created,
 - Then `.claude/feedback-config.json` is included in gitignore patterns.
 

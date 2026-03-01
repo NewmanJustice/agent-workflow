@@ -6,7 +6,7 @@ As a developer, I want to see clear success indicators when all validation check
 ---
 
 ## Context / scope
-- Developer using orchestr8 CLI
+- Developer using murmur8 CLI
 - Project is fully initialized with all required artifacts
 - This story covers the happy path output formatting
 
@@ -18,17 +18,17 @@ See feature spec: `.blueprint/features/feature_validate-command/FEATURE_SPEC.md`
 
 **AC-1 — Checkmark displayed for passed checks**
 - Given all required files and directories exist,
-- When I run `orchestr8 validate`,
+- When I run `murmur8 validate`,
 - Then each passed check displays a checkmark indicator.
 
 **AC-2 — Colorized output when supported**
 - Given my terminal supports color output,
-- When I run `orchestr8 validate` and checks pass,
+- When I run `murmur8 validate` and checks pass,
 - Then checkmarks are displayed in green.
 
 **AC-3 — ASCII fallback for non-color terminals**
 - Given my terminal does not support color output,
-- When I run `orchestr8 validate`,
+- When I run `murmur8 validate`,
 - Then success indicators use ASCII-compatible characters
 - And output remains readable.
 

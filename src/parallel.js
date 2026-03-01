@@ -884,7 +884,7 @@ function setupAbortHandler(queue) {
     releaseLock();
 
     console.log('\nAborted. Worktrees preserved for debugging.');
-    console.log("Run 'orchestr8 parallel cleanup' to remove.\n");
+    console.log("Run 'murmur8 parallel cleanup' to remove.\n");
 
     process.exit(130); // Standard exit code for Ctrl+C
   };
@@ -945,7 +945,7 @@ async function abortParallel(options = {}) {
         worktrees.forEach(w => console.log(`  • ${w}`));
       }
     }
-    console.log("\nTo clean up: orchestr8 parallel cleanup");
+    console.log("\nTo clean up: murmur8 parallel cleanup");
   }
 
   return { success: true, abortedCount };
@@ -1141,7 +1141,7 @@ async function runParallel(slugs, options = {}) {
   const limitCheck = validateFeatureLimit(slugs);
   if (!limitCheck.valid) {
     console.error(`\nError: ${limitCheck.error}`);
-    console.error(`\nTo increase limit: orchestr8 parallel-config set maxFeatures <N>\n`);
+    console.error(`\nTo increase limit: murmur8 parallel-config set maxFeatures <N>\n`);
     return { success: false, error: 'feature-limit-exceeded' };
   }
 
@@ -1167,8 +1167,8 @@ async function runParallel(slugs, options = {}) {
       console.error(`  Features: ${lock.features.join(', ')}`);
       console.error('\nOptions:');
       console.error('  • Wait for it to complete');
-      console.error('  • Run: orchestr8 parallel status');
-      console.error('  • Force override: orchestr8 parallel ... --force\n');
+      console.error('  • Run: murmur8 parallel status');
+      console.error('  • Force override: murmur8 parallel ... --force\n');
       return { success: false, error: 'locked' };
     }
   } else {

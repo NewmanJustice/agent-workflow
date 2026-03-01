@@ -1,14 +1,14 @@
 # Story — Run Validation Command
 
 ## User story
-As a developer, I want to run `orchestr8 validate` in my project directory so that I can check whether my environment is correctly configured before running the pipeline.
+As a developer, I want to run `murmur8 validate` in my project directory so that I can check whether my environment is correctly configured before running the pipeline.
 
 ---
 
 ## Context / scope
-- Developer using orchestr8 CLI
+- Developer using murmur8 CLI
 - Command can be run in any directory (initialized or not)
-- Route: `orchestr8 validate` via `bin/cli.js`
+- Route: `murmur8 validate` via `bin/cli.js`
 - This is the primary entry point for the validate feature
 
 See feature spec: `.blueprint/features/feature_validate-command/FEATURE_SPEC.md`
@@ -18,12 +18,12 @@ See feature spec: `.blueprint/features/feature_validate-command/FEATURE_SPEC.md`
 ## Acceptance criteria
 
 **AC-1 — Command is available**
-- Given I have orchestr8 installed,
-- When I run `orchestr8 validate`,
+- Given I have murmur8 installed,
+- When I run `murmur8 validate`,
 - Then the command executes without throwing an exception.
 
 **AC-2 — Checks execute in sequence**
-- Given I run `orchestr8 validate`,
+- Given I run `murmur8 validate`,
 - When the command executes,
 - Then all validation checks are performed:
   - Directory existence (`.blueprint/`, `.business_context/`, `.claude/commands/`)
@@ -34,18 +34,18 @@ See feature spec: `.blueprint/features/feature_validate-command/FEATURE_SPEC.md`
   - Node.js version check (>=18)
 
 **AC-3 — Each check produces a status line**
-- Given I run `orchestr8 validate`,
+- Given I run `murmur8 validate`,
 - When each check completes,
 - Then a status line is printed showing pass or fail for that check.
 
 **AC-4 — Command completes without crashes**
 - Given any combination of missing/present files,
-- When I run `orchestr8 validate`,
+- When I run `murmur8 validate`,
 - Then the command completes gracefully (does not throw exceptions)
 - And all checks are wrapped to handle missing paths.
 
 **AC-5 — Idempotent execution**
-- Given I run `orchestr8 validate` multiple times,
+- Given I run `murmur8 validate` multiple times,
 - When each execution completes,
 - Then no files are created, modified, or deleted
 - And each run produces the same output for the same state.

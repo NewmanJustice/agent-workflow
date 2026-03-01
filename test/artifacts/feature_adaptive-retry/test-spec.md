@@ -2,7 +2,7 @@
 
 ## Understanding
 
-The adaptive-retry feature adds intelligent retry logic to the orchestr8 pipeline. When an agent fails, the retry module calculates failure rates from history and recommends strategies to improve retry success. Key components:
+The adaptive-retry feature adds intelligent retry logic to the murmur8 pipeline. When an agent fails, the retry module calculates failure rates from history and recommends strategies to improve retry success. Key components:
 - **Retry configuration** (`retry-config.json`): thresholds, max retries, strategies per stage
 - **Strategy recommendation**: based on failure rate vs threshold, escalates through strategy list
 - **Prompt modification**: strategies modify agent prompts (e.g., simplify, add context, rollback)

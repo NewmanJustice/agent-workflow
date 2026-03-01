@@ -2,7 +2,7 @@
 
 ## 1. Feature Intent
 
-Prevent running multiple parallel executions simultaneously by using a lock file. If a user accidentally runs `orchestr8 parallel` twice, the second invocation should fail with a clear message rather than creating chaos.
+Prevent running multiple parallel executions simultaneously by using a lock file. If a user accidentally runs `murmur8 parallel` twice, the second invocation should fail with a clear message rather than creating chaos.
 
 **Problem:** Without locking, two parallel runs could create conflicting worktrees, compete for resources, and produce unpredictable results.
 
@@ -30,7 +30,7 @@ Prevent running multiple parallel executions simultaneously by using a lock file
 ### First Run (No Lock)
 
 ```
-$ orchestr8 parallel feat-a feat-b
+$ murmur8 parallel feat-a feat-b
 
 [Creates .claude/parallel.lock]
 Starting parallel pipelines...
@@ -41,21 +41,21 @@ Starting parallel pipelines...
 ### Second Run (Locked)
 
 ```
-$ orchestr8 parallel feat-c feat-d
+$ murmur8 parallel feat-c feat-d
 
 Error: Another parallel execution is in progress (PID: 12345)
 Started at: 2026-02-25T10:30:00Z
 
 Options:
   • Wait for it to complete
-  • Run: orchestr8 parallel status
-  • Force override: orchestr8 parallel feat-c feat-d --force
+  • Run: murmur8 parallel status
+  • Force override: murmur8 parallel feat-c feat-d --force
 ```
 
 ### Force Override
 
 ```
-$ orchestr8 parallel feat-c feat-d --force
+$ murmur8 parallel feat-c feat-d --force
 
 Warning: Overriding existing lock (PID: 12345)
 This may cause conflicts if another execution is still running.
@@ -66,7 +66,7 @@ Continue? [y/N] y
 ### Stale Lock (Process Dead)
 
 ```
-$ orchestr8 parallel feat-a feat-b
+$ murmur8 parallel feat-a feat-b
 
 Warning: Found stale lock file (PID 12345 not running)
 Removing stale lock and continuing...

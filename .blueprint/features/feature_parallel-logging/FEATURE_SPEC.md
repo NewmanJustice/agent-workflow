@@ -30,7 +30,7 @@ Write each pipeline's output to a dedicated log file instead of interleaving on 
 ### Default (Quiet Console)
 
 ```
-$ orchestr8 parallel feat-a feat-b feat-c
+$ murmur8 parallel feat-a feat-b feat-c
 
 Starting parallel pipelines...
 
@@ -47,7 +47,7 @@ Summary: 2 completed, 1 failed
 ### Verbose Mode
 
 ```
-$ orchestr8 parallel feat-a --verbose
+$ murmur8 parallel feat-a --verbose
 
 Starting parallel pipelines...
 

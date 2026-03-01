@@ -2,7 +2,7 @@
 
 ## User Story
 
-As a **developer using orchestr8**, I want the **pipeline to recommend a retry strategy based on failure history** so that **I can make informed decisions about how to handle failures more effectively**.
+As a **developer using murmur8**, I want the **pipeline to recommend a retry strategy based on failure history** so that **I can make informed decisions about how to handle failures more effectively**.
 
 ---
 

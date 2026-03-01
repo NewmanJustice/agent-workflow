@@ -2,7 +2,7 @@
 
 ## User Story
 
-As a **developer using orchestr8**, I want to **view, modify, and reset retry configuration** so that **I can customize how the pipeline handles failures based on my project's needs**.
+As a **developer using murmur8**, I want to **view, modify, and reset retry configuration** so that **I can customize how the pipeline handles failures based on my project's needs**.
 
 ---
 
@@ -19,44 +19,44 @@ As a **developer using orchestr8**, I want to **view, modify, and reset retry co
 
 **AC-1 — View current configuration**
 - Given the retry configuration file exists at `.claude/retry-config.json`,
-- When I run `orchestr8 retry-config`,
+- When I run `murmur8 retry-config`,
 - Then the current configuration is displayed in a readable format showing thresholds, window size, max retries, and enabled strategies.
 
 **AC-2 — View defaults when no configuration exists**
 - Given no retry configuration file exists,
-- When I run `orchestr8 retry-config`,
+- When I run `murmur8 retry-config`,
 - Then the hardcoded default configuration is displayed,
 - And a message indicates "Using default configuration (no config file found)".
 
 **AC-3 — Modify configuration value**
-- Given I run `orchestr8 retry-config set <key> <value>` (e.g., `orchestr8 retry-config set maxRetries 5`),
+- Given I run `murmur8 retry-config set <key> <value>` (e.g., `murmur8 retry-config set maxRetries 5`),
 - When the key is valid and value is of correct type,
 - Then the configuration file is updated with the new value,
 - And a confirmation message shows the updated setting.
 
 **AC-4 — Reject invalid configuration key**
-- Given I run `orchestr8 retry-config set <invalidKey> <value>`,
+- Given I run `murmur8 retry-config set <invalidKey> <value>`,
 - When the key is not recognized,
 - Then an error message is displayed listing valid configuration keys,
 - And no file modification occurs.
 
 **AC-5 — Reset configuration to defaults**
 - Given the retry configuration file exists with custom values,
-- When I run `orchestr8 retry-config reset`,
+- When I run `murmur8 retry-config reset`,
 - Then the configuration file is replaced with default values,
 - And a confirmation message indicates "Retry configuration reset to defaults".
 
 **AC-6 — Create configuration file on first modification**
 - Given no retry configuration file exists,
-- When I run `orchestr8 retry-config set <key> <value>`,
+- When I run `murmur8 retry-config set <key> <value>`,
 - Then the configuration file is created with default values plus the specified modification,
 - And the file is created in `.claude/retry-config.json`.
 
 **AC-7 — Handle corrupted configuration gracefully**
 - Given the retry configuration file exists but contains invalid JSON,
-- When I run `orchestr8 retry-config`,
+- When I run `murmur8 retry-config`,
 - Then an error message is displayed indicating the file is corrupted,
-- And a suggestion to run `orchestr8 retry-config reset` is shown.
+- And a suggestion to run `murmur8 retry-config reset` is shown.
 
 ---
 

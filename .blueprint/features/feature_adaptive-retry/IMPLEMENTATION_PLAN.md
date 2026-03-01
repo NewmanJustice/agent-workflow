@@ -2,7 +2,7 @@
 
 ## Summary
 
-This feature adds intelligent retry logic to the orchestr8 pipeline via a new `src/retry.js` module. The module calculates failure rates from history, recommends strategies based on configurable thresholds, and applies prompt modifications when users accept recommended strategies. The implementation integrates with existing `src/history.js` for failure data and provides CLI commands for configuration management.
+This feature adds intelligent retry logic to the murmur8 pipeline via a new `src/retry.js` module. The module calculates failure rates from history, recommends strategies based on configurable thresholds, and applies prompt modifications when users accept recommended strategies. The implementation integrates with existing `src/history.js` for failure data and provides CLI commands for configuration management.
 
 ## Files to Create/Modify
 

@@ -2,7 +2,7 @@
 
 ## User story
 
-As a user of orchestr8, I want all agent assertions to cite their source files so that I can trace claims back to authoritative inputs and verify correctness.
+As a user of murmur8, I want all agent assertions to cite their source files so that I can trace claims back to authoritative inputs and verify correctness.
 
 ---
 

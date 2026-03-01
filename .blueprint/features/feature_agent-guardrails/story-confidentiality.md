@@ -2,7 +2,7 @@
 
 ## User story
 
-As a user of orchestr8, I want agents to treat business context and project content as confidential so that sensitive information is not leaked in outputs or exposed to external services.
+As a user of murmur8, I want agents to treat business context and project content as confidential so that sensitive information is not leaked in outputs or exposed to external services.
 
 ---
 

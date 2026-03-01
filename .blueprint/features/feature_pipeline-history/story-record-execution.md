@@ -2,7 +2,7 @@
 
 ## User story
 
-As a developer using orchestr8, I want pipeline execution data to be automatically recorded during runs so that I have historical data for later analysis.
+As a developer using murmur8, I want pipeline execution data to be automatically recorded during runs so that I have historical data for later analysis.
 
 ---
 

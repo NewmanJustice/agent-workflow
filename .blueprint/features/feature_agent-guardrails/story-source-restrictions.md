@@ -2,7 +2,7 @@
 
 ## User story
 
-As a user of orchestr8, I want agents to use only information from explicitly provided inputs so that outputs are grounded in authoritative sources and not hallucinated from training data or external content.
+As a user of murmur8, I want agents to use only information from explicitly provided inputs so that outputs are grounded in authoritative sources and not hallucinated from training data or external content.
 
 ---
 

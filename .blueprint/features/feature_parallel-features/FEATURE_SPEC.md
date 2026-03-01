@@ -4,7 +4,7 @@
 
 **Why this feature exists.**
 
-orchestr8 currently processes features sequentially through the Alex, Cass, Nigel, Codey pipeline. For projects with large backlogs, this creates a bottleneck: only one feature can be in progress at any time. The system specification explicitly notes this as a known limitation: "Pipeline is sequential; no parallel agent execution" and "Single-feature focus; no batch processing" (see `.blueprint/system_specification/SYSTEM_SPEC.md` Section 10).
+murmur8 currently processes features sequentially through the Alex, Cass, Nigel, Codey pipeline. For projects with large backlogs, this creates a bottleneck: only one feature can be in progress at any time. The system specification explicitly notes this as a known limitation: "Pipeline is sequential; no parallel agent execution" and "Single-feature focus; no batch processing" (see `.blueprint/system_specification/SYSTEM_SPEC.md` Section 10).
 
 This feature enables **parallel execution of multiple feature pipelines** using git worktrees for isolation. Each feature runs in its own worktree/branch, allowing simultaneous development. Results are merged back to the main branch when complete.
 
@@ -28,7 +28,7 @@ This feature enables **parallel execution of multiple feature pipelines** using 
 
 ### In Scope
 
-- New CLI command: `orchestr8 parallel <slug1> <slug2> ... <slugN>`
+- New CLI command: `murmur8 parallel <slug1> <slug2> ... <slugN>`
 - Git worktree creation per feature (one worktree = one feature)
 - Independent pipeline execution in each worktree
 - Merge strategy for completed features back to main branch
@@ -52,7 +52,7 @@ This feature enables **parallel execution of multiple feature pipelines** using 
 - **Can do:** Invoke parallel command with multiple feature slugs, monitor progress, resolve merge conflicts, abort individual pipelines
 - **Cannot do:** Run parallel pipelines without git repository, modify running pipeline's worktree directly without risking state corruption
 
-### orchestr8 CLI
+### murmur8 CLI
 - **Can do:** Create/manage worktrees, spawn parallel pipelines, merge completed features, report status
 - **Cannot do:** Automatically resolve merge conflicts (escalates to user)
 
@@ -66,7 +66,7 @@ This feature enables **parallel execution of multiple feature pipelines** using 
 
 ### Happy Path
 
-1. User invokes `orchestr8 parallel feat-a feat-b feat-c`
+1. User invokes `murmur8 parallel feat-a feat-b feat-c`
 2. System validates git repository state (clean working tree, on main/target branch)
 3. For each feature slug:
    - Create git worktree at `.claude/worktrees/feat-{slug}`
@@ -168,7 +168,7 @@ parallel_queued → worktree_created → parallel_running → merge_pending
 ### System Components
 
 - Git (worktree support requires git 2.5+)
-- orchestr8 queue management (`src/orchestrator.js`)
+- murmur8 queue management (`src/orchestrator.js`)
 - Pipeline execution (`SKILL.md` / implement-feature)
 - Node.js child process spawning
 
@@ -195,7 +195,7 @@ parallel_queued → worktree_created → parallel_running → merge_pending
 
 ### Observability
 
-- Aggregate status command: `orchestr8 parallel status`
+- Aggregate status command: `murmur8 parallel status`
 - Per-feature status visible in each worktree's queue file
 - Completion/failure notifications per feature
 

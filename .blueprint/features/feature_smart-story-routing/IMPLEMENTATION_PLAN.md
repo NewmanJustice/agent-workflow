@@ -58,7 +58,7 @@ This feature adds automatic classification of features as "technical" or "user-f
    - Add conditional routing: if technical, skip to Nigel
 
 9. **Add optional CLI command `classify`**
-   - Usage: `npx orchestr8 classify path/to/FEATURE_SPEC.md`
+   - Usage: `npx murmur8 classify path/to/FEATURE_SPEC.md`
    - Outputs classification result for debugging/testing
 
 10. **Run all tests and verify**

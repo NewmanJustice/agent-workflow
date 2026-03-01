@@ -31,7 +31,7 @@ Validate that a batch of features is safe to run in parallel before execution be
 ### Pre-flight Check Output
 
 ```
-$ orchestr8 parallel feat-a feat-b feat-c --dry-run
+$ murmur8 parallel feat-a feat-b feat-c --dry-run
 
 Pre-flight Validation
 =====================
@@ -66,7 +66,7 @@ Proceed? [y/N]
 ### Validation Failures Block Execution
 
 ```
-$ orchestr8 parallel feat-a feat-b
+$ murmur8 parallel feat-a feat-b
 
 Pre-flight Validation
 =====================
@@ -82,7 +82,7 @@ Cannot proceed. Run these commands first:
 ### Override with --skip-preflight
 
 ```
-$ orchestr8 parallel feat-a feat-b --skip-preflight
+$ murmur8 parallel feat-a feat-b --skip-preflight
 
 ⚠ Skipping pre-flight validation (not recommended)
 

@@ -12,7 +12,7 @@ As a developer, I want to identify pipeline runs where stage durations deviated 
 - Analysis uses statistical deviation (mean + 2*stddev) to identify anomalies
 - Scope limited to last 10 runs to keep output manageable
 - This is a read-only analysis; no pipeline state is modified
-- Route: `orchestr8 insights` (anomaly section included by default)
+- Route: `murmur8 insights` (anomaly section included by default)
 
 Per FEATURE_SPEC.md:Section 6 (Rule: Anomaly Detection):
 - Threshold: 2 standard deviations above mean
@@ -24,7 +24,7 @@ Per FEATURE_SPEC.md:Section 6 (Rule: Anomaly Detection):
 
 **AC-1 — Detect anomalous stage durations**
 - Given the history file contains at least 3 pipeline runs,
-- When the user runs `orchestr8 insights`,
+- When the user runs `murmur8 insights`,
 - Then the output includes an "Anomalies" section listing any runs where a stage duration exceeded mean + 2*stddev.
 
 **AC-2 — Display anomaly details**
@@ -44,7 +44,7 @@ Per FEATURE_SPEC.md:Section 6 (Rule: Anomaly Detection):
 
 **AC-5 — No anomalies detected**
 - Given all recent runs have stage durations within 2 standard deviations of the mean,
-- When the user runs `orchestr8 insights`,
+- When the user runs `murmur8 insights`,
 - Then the anomalies section displays: "No anomalies detected in recent runs."
 
 **AC-6 — Insufficient data for statistics**

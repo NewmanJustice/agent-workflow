@@ -2,7 +2,7 @@
 
 ## Understanding
 
-The parallel features capability enables concurrent execution of multiple feature pipelines using git worktrees for isolation. Users invoke `orchestr8 parallel <slug1> <slug2> ... <slugN>` to process multiple features simultaneously. Each feature runs in its own worktree/branch, with results merged back to main on completion.
+The parallel features capability enables concurrent execution of multiple feature pipelines using git worktrees for isolation. Users invoke `murmur8 parallel <slug1> <slug2> ... <slugN>` to process multiple features simultaneously. Each feature runs in its own worktree/branch, with results merged back to main on completion.
 
 Key behaviors: git worktree creation per feature, independent pipeline execution, merge-on-completion strategy, concurrency limiting (default 3), conflict escalation to user, and status reporting across parallel executions. Failed worktrees are preserved for debugging; successful ones are cleaned up.
 

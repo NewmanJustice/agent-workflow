@@ -4,7 +4,7 @@
 
 **Why this feature exists.**
 
-The orchestr8 framework relies on four AI agents (Alex, Cass, Nigel, Codey) operating autonomously within a pipeline. Without explicit guardrails, these agents may:
+The murmur8 framework relies on four AI agents (Alex, Cass, Nigel, Codey) operating autonomously within a pipeline. Without explicit guardrails, these agents may:
 
 - Generate content based on training data rather than provided inputs
 - Reference external sources (social media, forums, web content) that are unreliable or inappropriate
@@ -238,7 +238,7 @@ The feature adds behavioural constraints to existing states without modifying th
 
 ### Operational Dependencies
 - Users must provide adequate input materials (business_context, specs) for agents to work from
-- Teams adopting orchestr8 must understand that agents will escalate when information is insufficient
+- Teams adopting murmur8 must understand that agents will escalate when information is insufficient
 
 ---
 

@@ -305,7 +305,7 @@ function displayStackConfig() {
   console.log(`  testCommand:    ${config.testCommand || '(not set)'}`);
   console.log(`  linter:         ${config.linter || '(not set)'}`);
   console.log(`  tools:          ${config.tools.length > 0 ? config.tools.join(', ') : '(not set)'}`);
-  console.log('\nTo change: orchestr8 stack-config set <key> <value>');
+  console.log('\nTo change: murmur8 stack-config set <key> <value>');
 }
 
 module.exports = {

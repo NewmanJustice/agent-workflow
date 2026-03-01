@@ -71,7 +71,7 @@ Suggested features to implement using the `/implement-feature` pipeline.
 | 💡 | dry-run-mode | M | Validate without running agents |
 | 💡 | feature-dependencies | M | Define execution order |
 | 💡 | webhook-notifications | L | Slack/email on completion |
-| 💡 | mcp-integration | XL | Expose orchestr8 as MCP tools |
+| 💡 | mcp-integration | XL | Expose murmur8 as MCP tools |
 | 💡 | mcp-repos-server | XL | Cross-repo context for distributed monoliths |
 
 ---
@@ -110,8 +110,8 @@ Write each pipeline's output to a log file:
 #### parallel-abort
 Command to stop all running pipelines and clean up:
 ```bash
-orchestr8 parallel abort           # Stop all, preserve worktrees
-orchestr8 parallel abort --cleanup # Stop all, remove worktrees
+murmur8 parallel abort           # Stop all, preserve worktrees
+murmur8 parallel abort --cleanup # Stop all, remove worktrees
 ```
 - Send SIGTERM to child processes
 - Update queue state to 'aborted'
@@ -143,7 +143,7 @@ Complements the existing history/insights modules. Would allow users to:
 - Export to CSV for spreadsheet analysis
 - Export to JSON for custom dashboards
 - Filter by date range (`--since`, `--until`), status, or feature
-- `orchestr8 history export --format=csv --since=2024-01-01`
+- `murmur8 history export --format=csv --since=2024-01-01`
 - Useful for team reporting and metrics tracking
 
 ### agent-timeouts
@@ -181,8 +181,8 @@ External integrations:
 Track API usage for budgeting and optimization:
 - Record token counts per stage (input/output)
 - Calculate estimated cost using model pricing
-- Add `--cost` flag to `orchestr8 history`
-- Show cost trends in `orchestr8 insights`
+- Add `--cost` flag to `murmur8 history`
+- Show cost trends in `murmur8 insights`
 - Helps identify expensive stages for optimization
 
 ### diff-preview
@@ -194,7 +194,7 @@ Safety check before auto-commit:
 
 ### rollback
 Undo a feature implementation:
-- `orchestr8 rollback <feature-slug>` reverts commits
+- `murmur8 rollback <feature-slug>` reverts commits
 - Uses git history to find commits by feature
 - Shows preview of what will be reverted
 - Supports `--dry-run` to preview without reverting
@@ -213,11 +213,11 @@ Implemented in v2.7. See README for documentation.
 Define execution order for related features:
 - Add `depends_on: [feat-a, feat-b]` to feature spec
 - Pipeline refuses to start until dependencies complete
-- `orchestr8 deps <slug>` shows dependency graph
+- `murmur8 deps <slug>` shows dependency graph
 - Useful for features that build on each other
 
 ### mcp-integration
-Expose orchestr8 as MCP tools:
+Expose murmur8 as MCP tools:
 - `implement-feature` as an MCP tool
 - `get-pipeline-status` for monitoring
 - `get-insights` for analytics
@@ -306,7 +306,7 @@ Feature: Add order cancellation
 
 **Phased Implementation:**
 
-1. **Phase 1: Local Cache** — `orchestr8 sync-contracts` populates `.blueprint/contracts/`
+1. **Phase 1: Local Cache** — `murmur8 sync-contracts` populates `.blueprint/contracts/`
 2. **Phase 2: MCP Server** — Real-time access via GitHub API with caching
 3. **Phase 3: Smart Sync** — Diff detection, version pinning, staleness warnings
 

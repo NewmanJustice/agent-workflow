@@ -21,7 +21,7 @@ function checkDirectories() {
     message: passed
       ? 'All required directories exist'
       : `Missing directories: ${missing.join(', ')}`,
-    fix: passed ? null : 'Run `orchestr8 init` to initialize project'
+    fix: passed ? null : 'Run `murmur8 init` to initialize project'
   };
 }
 
@@ -33,7 +33,7 @@ function checkSystemSpec() {
     message: exists
       ? 'System specification exists'
       : `Missing: ${SYSTEM_SPEC_PATH}`,
-    fix: exists ? null : 'Run `orchestr8 init` to create system specification'
+    fix: exists ? null : 'Run `murmur8 init` to create system specification'
   };
 }
 
@@ -44,7 +44,7 @@ function checkAgentSpecs() {
       name: 'agent specifications',
       passed: false,
       message: 'Missing: .blueprint/agents directory',
-      fix: 'Run `orchestr8 init` to create agent specification files'
+      fix: 'Run `murmur8 init` to create agent specification files'
     };
   }
 
@@ -56,7 +56,7 @@ function checkAgentSpecs() {
     message: passed
       ? 'All agent specifications exist'
       : `Missing agent files: ${missing.join(', ')}`,
-    fix: passed ? null : 'Run `orchestr8 init` to create agent specification files'
+    fix: passed ? null : 'Run `murmur8 init` to create agent specification files'
   };
 }
 
@@ -67,7 +67,7 @@ function checkBusinessContext() {
       name: 'business context',
       passed: false,
       message: 'Missing: .business_context directory',
-      fix: 'Run `orchestr8 init` to create .business_context directory'
+      fix: 'Run `murmur8 init` to create .business_context directory'
     };
   }
 
@@ -97,7 +97,7 @@ function checkSkillsInstalled() {
     message: exists
       ? 'Required skills are installed'
       : `Missing: ${SKILL_PATH}`,
-    fix: exists ? null : 'Run `orchestr8 init` to install required skills'
+    fix: exists ? null : 'Run `murmur8 init` to install required skills'
   };
 }
 

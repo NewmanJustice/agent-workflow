@@ -2,7 +2,7 @@
 
 ## Summary
 
-This feature adds a new `orchestr8 insights` CLI command that performs read-only analysis of pipeline history data. It computes bottleneck detection, failure patterns, anomaly detection, and trend analysis, outputting human-readable recommendations or JSON. The implementation creates a new `src/insights.js` module that reuses `readHistoryFile()` from the existing `src/history.js`.
+This feature adds a new `murmur8 insights` CLI command that performs read-only analysis of pipeline history data. It computes bottleneck detection, failure patterns, anomaly detection, and trend analysis, outputting human-readable recommendations or JSON. The implementation creates a new `src/insights.js` module that reuses `readHistoryFile()` from the existing `src/history.js`.
 
 ---
 

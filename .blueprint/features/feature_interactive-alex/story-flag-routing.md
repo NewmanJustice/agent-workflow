@@ -2,7 +2,7 @@
 
 ## Story
 
-**As a** developer using orchestr8,
+**As a** developer using murmur8,
 **I want** the `/implement-feature` command to detect when interactive mode is needed and route accordingly,
 **so that** I get a collaborative spec experience for new/unclear features without manual flag management.
 

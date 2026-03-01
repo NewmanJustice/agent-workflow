@@ -2,7 +2,7 @@
 
 ## User Story
 
-As a **developer using orchestr8**, I want the **pipeline to intelligently decide whether to recommend retrying** so that **I receive useful guidance based on attempt count, failure history, and system state**.
+As a **developer using murmur8**, I want the **pipeline to intelligently decide whether to recommend retrying** so that **I receive useful guidance based on attempt count, failure history, and system state**.
 
 ---
 

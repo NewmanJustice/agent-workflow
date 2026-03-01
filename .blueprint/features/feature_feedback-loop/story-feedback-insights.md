@@ -18,7 +18,7 @@ As a **developer**, I want **correlation analysis between feedback scores and pi
 ## Acceptance Criteria
 
 **AC-1 — Feedback analysis command**
-- Given the user runs `orchestr8 insights --feedback`,
+- Given the user runs `murmur8 insights --feedback`,
 - When sufficient history exists (10+ completed runs with feedback),
 - Then a feedback analysis report is displayed.
 
@@ -43,7 +43,7 @@ As a **developer**, I want **correlation analysis between feedback scores and pi
 - And the recommendation balances false positives (unnecessary pauses) and false negatives (missed quality issues).
 
 **AC-5 — Insufficient data handling**
-- Given the user runs `orchestr8 insights --feedback`,
+- Given the user runs `murmur8 insights --feedback`,
 - When fewer than 10 completed runs with feedback exist,
 - Then a message is displayed: "Insufficient data for feedback analysis. {N}/10 runs with feedback available."
 

@@ -1,6 +1,8 @@
-# orchestr8
+# murmur8
 
-A multi-agent workflow framework for automated feature development. Four specialized AI agents collaborate in sequence to take features from specification to implementation, with built-in feedback loops and self-improvement capabilities.
+A multi-agent workflow framework for automated feature development. Like a murmuration of starlings — individual agents moving together as one, each responding to its neighbours to create something greater than the sum of its parts.
+
+Four specialized AI agents collaborate in sequence to take features from specification to implementation, with built-in feedback loops and self-improvement capabilities.
 
 ## Agents
 
@@ -14,35 +16,35 @@ A multi-agent workflow framework for automated feature development. Four special
 ## Installation
 
 ```bash
-npx orchestr8 init
+npx murmur8 init
 ```
 
 This installs the `.blueprint/` directory, `.business_context/`, and the `/implement-feature` skill to `.claude/commands/`. If files already exist, you'll be prompted before overwriting. It also adds the workflow queue to `.gitignore`.
 
-During initialization, orchestr8 **auto-detects your project's tech stack** from manifest files (`package.json`, `pyproject.toml`, `go.mod`, etc.) and writes the result to `.claude/stack-config.json`. The agents (Nigel and Codey) read this file at runtime to adapt their testing and implementation approach to your stack.
+During initialization, murmur8 **auto-detects your project's tech stack** from manifest files (`package.json`, `pyproject.toml`, `go.mod`, etc.) and writes the result to `.claude/stack-config.json`. The agents (Nigel and Codey) read this file at runtime to adapt their testing and implementation approach to your stack.
 
 ```bash
 # Review what was detected
-npx orchestr8 stack-config
+npx murmur8 stack-config
 
 # Adjust if needed
-npx orchestr8 stack-config set language TypeScript
-npx orchestr8 stack-config set frameworks '["next","react"]'
-npx orchestr8 stack-config set testRunner vitest
-npx orchestr8 stack-config set testCommand "npx vitest run"
+npx murmur8 stack-config set language TypeScript
+npx murmur8 stack-config set frameworks '["next","react"]'
+npx murmur8 stack-config set testRunner vitest
+npx murmur8 stack-config set testCommand "npx vitest run"
 ```
 
 If you're working with a non-JavaScript project, set the stack config before running the pipeline:
 
 ```bash
 # Python/Django example
-npx orchestr8 stack-config set language Python
-npx orchestr8 stack-config set runtime "Python 3.12"
-npx orchestr8 stack-config set packageManager pip
-npx orchestr8 stack-config set frameworks '["django"]'
-npx orchestr8 stack-config set testRunner pytest
-npx orchestr8 stack-config set testCommand "pytest"
-npx orchestr8 stack-config set linter ruff
+npx murmur8 stack-config set language Python
+npx murmur8 stack-config set runtime "Python 3.12"
+npx murmur8 stack-config set packageManager pip
+npx murmur8 stack-config set frameworks '["django"]'
+npx murmur8 stack-config set testRunner pytest
+npx murmur8 stack-config set testCommand "pytest"
+npx murmur8 stack-config set linter ruff
 ```
 
 ## Keeping Up to Date
@@ -52,7 +54,7 @@ npx orchestr8 stack-config set linter ruff
 **Project files** (agent specs, templates, skill definition) are copied to your project and need explicit updating:
 
 ```bash
-npx orchestr8 update
+npx murmur8 update
 ```
 
 This updates `.blueprint/agents/`, `.blueprint/templates/`, `.blueprint/ways_of_working/`, and `.claude/commands/implement-feature.md` while preserving your content in `features/` and `system_specification/`.
@@ -63,49 +65,49 @@ This updates `.blueprint/agents/`, `.blueprint/templates/`, `.blueprint/ways_of_
 
 | Command | Description |
 |---------|-------------|
-| `npx orchestr8 init` | Initialize `.blueprint/`, `.business_context/`, and skill in your project |
-| `npx orchestr8 update` | Update agents, templates, and rituals to latest version |
-| `npx orchestr8 validate` | Pre-flight checks before running pipeline |
-| `npx orchestr8 help` | Show help |
+| `npx murmur8 init` | Initialize `.blueprint/`, `.business_context/`, and skill in your project |
+| `npx murmur8 update` | Update agents, templates, and rituals to latest version |
+| `npx murmur8 validate` | Pre-flight checks before running pipeline |
+| `npx murmur8 help` | Show help |
 
 ### History & Insights
 
 | Command | Description |
 |---------|-------------|
-| `npx orchestr8 history` | View recent pipeline runs |
-| `npx orchestr8 history --stats` | View aggregate statistics |
-| `npx orchestr8 history --all` | View all runs |
-| `npx orchestr8 history clear` | Clear history |
-| `npx orchestr8 insights` | Analyze patterns and get recommendations |
-| `npx orchestr8 insights --feedback` | View feedback correlation analysis |
-| `npx orchestr8 insights --bottlenecks` | View bottleneck analysis |
-| `npx orchestr8 insights --failures` | View failure pattern analysis |
+| `npx murmur8 history` | View recent pipeline runs |
+| `npx murmur8 history --stats` | View aggregate statistics |
+| `npx murmur8 history --all` | View all runs |
+| `npx murmur8 history clear` | Clear history |
+| `npx murmur8 insights` | Analyze patterns and get recommendations |
+| `npx murmur8 insights --feedback` | View feedback correlation analysis |
+| `npx murmur8 insights --bottlenecks` | View bottleneck analysis |
+| `npx murmur8 insights --failures` | View failure pattern analysis |
 
 ### Parallel Execution
 
 | Command | Description |
 |---------|-------------|
-| `npx orchestr8 parallel <slugs...>` | Run multiple features in parallel |
-| `npx orchestr8 parallel <slugs...> --dry-run` | Preview execution plan |
-| `npx orchestr8 parallel status` | Show status of running pipelines |
-| `npx orchestr8 parallel cleanup` | Remove completed worktrees |
-| `npx orchestr8 parallel-config` | View parallel configuration |
-| `npx orchestr8 parallel-config set <key> <value>` | Modify parallel settings |
+| `npx murmur8 parallel <slugs...>` | Run multiple features in parallel |
+| `npx murmur8 parallel <slugs...> --dry-run` | Preview execution plan |
+| `npx murmur8 parallel status` | Show status of running pipelines |
+| `npx murmur8 parallel cleanup` | Remove completed worktrees |
+| `npx murmur8 parallel-config` | View parallel configuration |
+| `npx murmur8 parallel-config set <key> <value>` | Modify parallel settings |
 
 ### Configuration
 
 | Command | Description |
 |---------|-------------|
-| `npx orchestr8 stack-config` | View detected tech stack |
-| `npx orchestr8 stack-config set <key> <value>` | Modify stack settings (language, frameworks, testRunner, etc.) |
-| `npx orchestr8 stack-config reset` | Reset to empty defaults |
-| `npx orchestr8 retry-config` | View retry configuration |
-| `npx orchestr8 retry-config set <key> <value>` | Modify retry settings |
-| `npx orchestr8 retry-config reset` | Reset to defaults |
-| `npx orchestr8 feedback-config` | View feedback thresholds |
-| `npx orchestr8 feedback-config set <key> <value>` | Modify feedback settings |
-| `npx orchestr8 parallel-config` | View parallel pipeline configuration |
-| `npx orchestr8 parallel-config set <key> <value>` | Modify parallel settings |
+| `npx murmur8 stack-config` | View detected tech stack |
+| `npx murmur8 stack-config set <key> <value>` | Modify stack settings (language, frameworks, testRunner, etc.) |
+| `npx murmur8 stack-config reset` | Reset to empty defaults |
+| `npx murmur8 retry-config` | View retry configuration |
+| `npx murmur8 retry-config set <key> <value>` | Modify retry settings |
+| `npx murmur8 retry-config reset` | Reset to defaults |
+| `npx murmur8 feedback-config` | View feedback thresholds |
+| `npx murmur8 feedback-config set <key> <value>` | Modify feedback settings |
+| `npx murmur8 parallel-config` | View parallel pipeline configuration |
+| `npx murmur8 parallel-config set <key> <value>` | Modify parallel settings |
 
 ## Usage
 
@@ -212,7 +214,7 @@ The pipeline includes validation, smart routing, feedback loops, and history tra
 
 ## Modules
 
-orchestr8 includes these built-in modules for observability and self-improvement:
+murmur8 includes these built-in modules for observability and self-improvement:
 
 | Module | Purpose |
 |--------|---------|
@@ -314,7 +316,7 @@ All agents follow strict guardrails to ensure quality:
 The pipeline learns from itself:
 
 1. **Record** — Each run records timing, feedback, and outcomes
-2. **Analyze** — `orchestr8 insights` identifies patterns
+2. **Analyze** — `murmur8 insights` identifies patterns
 3. **Adapt** — Future runs use history to:
    - Set dynamic quality thresholds
    - Select optimal retry strategies
@@ -323,7 +325,7 @@ The pipeline learns from itself:
 
 ```bash
 # Example insights output
-$ npx orchestr8 insights
+$ npx murmur8 insights
 
 ## Pipeline Insights
 
@@ -364,7 +366,7 @@ Run multiple feature pipelines simultaneously using git worktrees for isolation.
 ### How It Works
 
 ```
-orchestr8 parallel user-auth dashboard notifications
+murmur8 parallel user-auth dashboard notifications
                     │
                     ▼
     ┌───────────────────────────────────────┐
@@ -414,22 +416,22 @@ orchestr8 parallel user-auth dashboard notifications
 
 ```bash
 # Run 3 features in parallel (default concurrency)
-npx orchestr8 parallel user-auth dashboard notifications
+npx murmur8 parallel user-auth dashboard notifications
 
 # Preview what would happen without executing
-npx orchestr8 parallel user-auth dashboard --dry-run
+npx murmur8 parallel user-auth dashboard --dry-run
 
 # Limit concurrent pipelines
-npx orchestr8 parallel feat-a feat-b feat-c feat-d --max-concurrency=2
+npx murmur8 parallel feat-a feat-b feat-c feat-d --max-concurrency=2
 
 # Check status of running pipelines
-npx orchestr8 parallel status
+npx murmur8 parallel status
 
 # Skip pre-flight feature validation
-npx orchestr8 parallel user-auth dashboard --skip-preflight
+npx murmur8 parallel user-auth dashboard --skip-preflight
 
 # Clean up completed/aborted worktrees
-npx orchestr8 parallel cleanup
+npx murmur8 parallel cleanup
 ```
 
 ### Pre-flight Batch Validation (v2.8)
@@ -437,7 +439,7 @@ npx orchestr8 parallel cleanup
 Before parallel execution, the system validates the batch to prevent wasted resources:
 
 ```
-$ npx orchestr8 parallel feat-a feat-b feat-c --dry-run
+$ npx murmur8 parallel feat-a feat-b feat-c --dry-run
 
 Pre-flight Validation
 =====================
@@ -486,7 +488,7 @@ The parallel module is **CLI-agnostic** — configure it to work with different 
 
 ```bash
 # View current configuration
-npx orchestr8 parallel-config
+npx murmur8 parallel-config
 
 # Output:
 #   cli:            npx claude
@@ -515,25 +517,25 @@ npx orchestr8 parallel-config
 
 ```bash
 # Claude Code (default)
-npx orchestr8 parallel-config set cli "npx claude"
-npx orchestr8 parallel-config set skill "/implement-feature"
+npx murmur8 parallel-config set cli "npx claude"
+npx murmur8 parallel-config set skill "/implement-feature"
 
 # Cursor
-npx orchestr8 parallel-config set cli "cursor"
-npx orchestr8 parallel-config set skill "composer"
-npx orchestr8 parallel-config set skillFlags ""
+npx murmur8 parallel-config set cli "cursor"
+npx murmur8 parallel-config set skill "composer"
+npx murmur8 parallel-config set skillFlags ""
 
 # Aider
-npx orchestr8 parallel-config set cli "aider"
-npx orchestr8 parallel-config set skill "--message"
-npx orchestr8 parallel-config set skillFlags "implement feature:"
+npx murmur8 parallel-config set cli "aider"
+npx murmur8 parallel-config set skill "--message"
+npx murmur8 parallel-config set skillFlags "implement feature:"
 
 # Custom agent script
-npx orchestr8 parallel-config set cli "./my-agent.sh"
-npx orchestr8 parallel-config set skill "run"
+npx murmur8 parallel-config set cli "./my-agent.sh"
+npx murmur8 parallel-config set skill "run"
 
 # Reset to defaults
-npx orchestr8 parallel-config reset
+npx murmur8 parallel-config reset
 ```
 
 ### State Management

@@ -3,7 +3,7 @@
 ## 1. Feature Intent
 **Why this feature exists.**
 
-The orchestr8 pipeline currently offers simple retry/skip/abort options when an agent fails (per SKILL.md:Error Handling). This feature introduces **intelligent retry logic** that learns from failure history to make smarter decisions about how to handle failures.
+The murmur8 pipeline currently offers simple retry/skip/abort options when an agent fails (per SKILL.md:Error Handling). This feature introduces **intelligent retry logic** that learns from failure history to make smarter decisions about how to handle failures.
 
 - **Problem being addressed:** Pipeline failures are handled uniformly regardless of context. Repeated failures at the same stage waste time with identical retry attempts.
 - **User need:** Developers want the pipeline to adapt its retry approach based on what has historically worked, reducing manual intervention and improving success rates.

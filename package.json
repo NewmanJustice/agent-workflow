@@ -1,10 +1,10 @@
 {
-  "name": "orchestr8",
-  "version": "3.4.0",
+  "name": "murmur8",
+  "version": "3.5.0",
   "description": "Multi-agent workflow framework for automated feature development",
   "main": "src/index.js",
   "bin": {
-    "orchestr8": "bin/cli.js"
+    "murmur8": "bin/cli.js"
   },
   "scripts": {
     "test": "node --test"

@@ -2,7 +2,7 @@
 
 ## User Story
 
-As a **developer using orchestr8**, I want the **pipeline to modify agent prompts based on the selected retry strategy** so that **retry attempts have a better chance of success by adjusting the agent's instructions**.
+As a **developer using murmur8**, I want the **pipeline to modify agent prompts based on the selected retry strategy** so that **retry attempts have a better chance of success by adjusting the agent's instructions**.
 
 ---
 

@@ -1,7 +1,7 @@
 # Story — Update Init/Update Commands for Shared Guardrails
 
 ## User story
-As a user installing or updating orchestr8, I want the init and update commands to correctly handle the new GUARDRAILS.md file so that the shared guardrails are properly distributed to target projects.
+As a user installing or updating murmur8, I want the init and update commands to correctly handle the new GUARDRAILS.md file so that the shared guardrails are properly distributed to target projects.
 
 ---
 
@@ -18,19 +18,19 @@ Per FEATURE_SPEC.md:Section 7: "src/init.js and src/update.js must handle the ne
 ## Acceptance criteria
 
 **AC-1 — Init copies GUARDRAILS.md**
-- Given a user runs `orchestr8 init` in a new project,
+- Given a user runs `murmur8 init` in a new project,
 - When the `.blueprint/agents/` directory is copied,
 - Then the `GUARDRAILS.md` file is included in the copied content
 - And the file is placed at `.blueprint/agents/GUARDRAILS.md` in the target project.
 
 **AC-2 — Update replaces GUARDRAILS.md**
-- Given a user runs `orchestr8 update` in an existing project,
+- Given a user runs `murmur8 update` in an existing project,
 - When the `.blueprint/agents/` directory is updated,
 - Then the `GUARDRAILS.md` file is replaced with the latest version from the package
 - And the file is placed at `.blueprint/agents/GUARDRAILS.md` in the target project.
 
 **AC-3 — Update preserves user content directories**
-- Given a user runs `orchestr8 update`,
+- Given a user runs `murmur8 update`,
 - When the update process completes,
 - Then `features/` and `system_specification/` directories remain untouched
 - And only `agents/`, `templates/`, and `ways_of_working/` are replaced.
@@ -43,7 +43,7 @@ Per FEATURE_SPEC.md:Section 7: "src/init.js and src/update.js must handle the ne
 
 **AC-5 — Backward compatibility**
 - Given an existing project with old agent specs (containing inline guardrails),
-- When a user runs `orchestr8 update`,
+- When a user runs `murmur8 update`,
 - Then the old agent specs are replaced with new specs referencing GUARDRAILS.md
 - And the new GUARDRAILS.md file is added to the project.
 

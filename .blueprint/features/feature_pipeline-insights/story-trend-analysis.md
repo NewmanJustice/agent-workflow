@@ -12,7 +12,7 @@ As a developer, I want to track whether pipeline performance is improving or deg
 - Analysis compares first half vs second half of history data
 - Requires minimum 6 runs to compute meaningful trends
 - This is a read-only analysis; no pipeline state is modified
-- Route: `orchestr8 insights` (trends section included by default)
+- Route: `murmur8 insights` (trends section included by default)
 
 Per FEATURE_SPEC.md:Section 6 (Rule: Trend Analysis):
 - Improving: >10% better in second half
@@ -26,12 +26,12 @@ Per FEATURE_SPEC.md:Section 6 (Rule: Trend Analysis):
 
 **AC-1 — Display success rate trend**
 - Given the history file contains at least 6 pipeline runs,
-- When the user runs `orchestr8 insights`,
+- When the user runs `murmur8 insights`,
 - Then the output includes a "Trends" section showing success rate trend as "improving", "stable", or "degrading".
 
 **AC-2 — Display duration trend**
 - Given the history file contains at least 6 pipeline runs,
-- When the user runs `orchestr8 insights`,
+- When the user runs `murmur8 insights`,
 - Then the output includes average duration trend as "improving" (faster), "stable", or "degrading" (slower).
 
 **AC-3 — Calculate trend by comparing halves**

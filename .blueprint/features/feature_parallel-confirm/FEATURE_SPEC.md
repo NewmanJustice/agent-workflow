@@ -4,7 +4,7 @@
 
 Prevent accidental execution of parallel pipelines by requiring user confirmation before starting. Users should see exactly what will happen (worktrees created, pipelines spawned, estimated resources) and explicitly confirm they want to proceed.
 
-**Problem:** Running `orchestr8 parallel feat-a feat-b feat-c` immediately starts creating worktrees and spawning processes. Users might run this accidentally or without understanding the impact.
+**Problem:** Running `murmur8 parallel feat-a feat-b feat-c` immediately starts creating worktrees and spawning processes. Users might run this accidentally or without understanding the impact.
 
 **Solution:** Show a summary and prompt for confirmation before execution.
 
@@ -28,7 +28,7 @@ Prevent accidental execution of parallel pipelines by requiring user confirmatio
 ### Happy Path
 
 ```
-$ orchestr8 parallel user-auth dashboard notifications
+$ murmur8 parallel user-auth dashboard notifications
 
 This will:
   • Create 3 git worktrees in .claude/worktrees/
@@ -43,14 +43,14 @@ Starting parallel pipelines...
 ### Skip Confirmation
 
 ```
-$ orchestr8 parallel user-auth dashboard --yes
+$ murmur8 parallel user-auth dashboard --yes
 Starting parallel pipelines...
 ```
 
 ### User Declines
 
 ```
-$ orchestr8 parallel user-auth dashboard
+$ murmur8 parallel user-auth dashboard
 
 This will:
   • Create 2 git worktrees in .claude/worktrees/

@@ -122,7 +122,7 @@ function displayHistory(options = {}) {
   const history = readHistoryFile();
 
   if (history.error === 'corrupted') {
-    console.log("Warning: History file is corrupted. Run 'orchestr8 history clear' to reset.");
+    console.log("Warning: History file is corrupted. Run 'murmur8 history clear' to reset.");
     return;
   }
 
@@ -167,16 +167,16 @@ function displayHistory(options = {}) {
   }
 
   if (!showAll && total > 10) {
-    console.log(`\nRun 'orchestr8 history --all' to see all entries.`);
+    console.log(`\nRun 'murmur8 history --all' to see all entries.`);
   }
-  console.log(`Run 'orchestr8 history --stats' for aggregate statistics.`);
+  console.log(`Run 'murmur8 history --stats' for aggregate statistics.`);
 }
 
 function showStats() {
   const history = readHistoryFile();
 
   if (history.error === 'corrupted') {
-    console.log("Warning: History file is corrupted. Run 'orchestr8 history clear' to reset.");
+    console.log("Warning: History file is corrupted. Run 'murmur8 history clear' to reset.");
     return;
   }
 

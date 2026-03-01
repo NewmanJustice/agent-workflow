@@ -12,7 +12,7 @@ As a developer, I want to export pipeline insights as structured JSON so that I 
 - JSON output contains all the same analysis data as text output
 - Enables integration with CI/CD pipelines, dashboards, or custom tooling
 - This is a read-only analysis; no pipeline state is modified
-- Route: `orchestr8 insights --json`
+- Route: `murmur8 insights --json`
 
 Per FEATURE_SPEC.md:Section 4 (Key alternatives or branches):
 - `--json` flag produces structured JSON instead of formatted text
@@ -23,7 +23,7 @@ Per FEATURE_SPEC.md:Section 4 (Key alternatives or branches):
 
 **AC-1 — Output JSON when flag provided**
 - Given the history file contains valid pipeline data,
-- When the user runs `orchestr8 insights --json`,
+- When the user runs `murmur8 insights --json`,
 - Then the output is valid JSON (parseable by `JSON.parse()`).
 
 **AC-2 — Include bottleneck data in JSON**
@@ -47,7 +47,7 @@ Per FEATURE_SPEC.md:Section 4 (Key alternatives or branches):
 - Then the JSON output includes a `trends` object with: `successRate` (trend + percentage), `duration` (trend + percentage), `recommendation` (if applicable).
 
 **AC-6 — Combine JSON with filter flags**
-- Given the user runs `orchestr8 insights --json --bottlenecks`,
+- Given the user runs `murmur8 insights --json --bottlenecks`,
 - When the analysis completes,
 - Then the JSON output includes only the `bottlenecks` section (other analysis types are omitted).
 

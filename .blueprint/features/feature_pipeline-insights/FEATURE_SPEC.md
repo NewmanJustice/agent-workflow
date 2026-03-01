@@ -6,7 +6,7 @@
 
 - **Problem being addressed:** The pipeline-history feature captures execution data but provides only basic statistics. Users cannot identify optimization opportunities—such as bottleneck stages, failure patterns, or performance trends—without manual analysis of the raw history data.
 - **User need:** Developers want actionable recommendations to improve pipeline efficiency. They need to understand which stages are slowest, why failures occur, and whether the pipeline is improving or degrading over time.
-- **System purpose alignment:** Per SYSTEM_SPEC.md:Section 8 (Cross-Cutting Concerns:Observability), the system aims for observability via queue status and agent summaries. Per SYSTEM_SPEC.md:Section 2 (Business & Domain Context), orchestr8 seeks to provide "structured processes to guide AI-generated code." This feature extends observability into actionable intelligence, enabling users to optimize their development workflow.
+- **System purpose alignment:** Per SYSTEM_SPEC.md:Section 8 (Cross-Cutting Concerns:Observability), the system aims for observability via queue status and agent summaries. Per SYSTEM_SPEC.md:Section 2 (Business & Domain Context), murmur8 seeks to provide "structured processes to guide AI-generated code." This feature extends observability into actionable intelligence, enabling users to optimize their development workflow.
 
 > This feature builds upon the existing pipeline-history feature (`.blueprint/features/feature_pipeline-history/FEATURE_SPEC.md`) without modifying history recording. It is a read-only analysis layer.
 
@@ -16,7 +16,7 @@
 
 ### In Scope
 
-- New CLI command `orchestr8 insights` that analyzes `.claude/pipeline-history.json`
+- New CLI command `murmur8 insights` that analyzes `.claude/pipeline-history.json`
 - Bottleneck detection: Identify which stage consistently takes longest
 - Failure pattern analysis: Determine which stages fail most and correlate with feature characteristics
 - Anomaly detection: Flag runs that deviate significantly from average durations
@@ -40,7 +40,7 @@
 
 ### Human User
 
-- **Can do:** Invoke `orchestr8 insights` to view optimization recommendations; filter by analysis type; export as JSON for programmatic use
+- **Can do:** Invoke `murmur8 insights` to view optimization recommendations; filter by analysis type; export as JSON for programmatic use
 - **Cannot do:** Modify the analysis thresholds or algorithms; act on recommendations automatically
 
 ### Insights Analyzer (internal component)
@@ -54,7 +54,7 @@
 
 ### Happy-path behaviour
 
-1. User runs `orchestr8 insights` after accumulating several pipeline runs
+1. User runs `murmur8 insights` after accumulating several pipeline runs
 2. System reads `.claude/pipeline-history.json` and validates data sufficiency
 3. System performs analysis across four dimensions: bottlenecks, failures, anomalies, trends
 4. System generates human-readable report with recommendations

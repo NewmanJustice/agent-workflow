@@ -3,7 +3,7 @@
 ## 1. Feature Intent
 **Why this feature exists.**
 
-- **Problem being addressed:** The orchestr8 pipeline executes sequentially but lacks intra-stage feedback. Agents cannot assess the quality of upstream artifacts, leading to silent propagation of poor-quality specifications, stories, or tests through the pipeline.
+- **Problem being addressed:** The murmur8 pipeline executes sequentially but lacks intra-stage feedback. Agents cannot assess the quality of upstream artifacts, leading to silent propagation of poor-quality specifications, stories, or tests through the pipeline.
 - **User need:** Developers want visibility into how each agent perceives the quality of inputs from previous stages. When quality is low, the pipeline should pause for human review rather than proceeding with flawed inputs.
 - **System alignment:** Per SYSTEM_SPEC.md:Section 7 (Governing Rules), agents are expected to "flag deviations" and "not silently alter specifications". This feature operationalises that principle by requiring explicit quality assessment at each stage boundary.
 
@@ -102,9 +102,9 @@
 
 ### Alternative: Dynamic Threshold Adjustment
 
-1. User runs `orchestr8 insights --feedback` after sufficient runs
+1. User runs `murmur8 insights --feedback` after sufficient runs
 2. Insights module calculates agent calibration (how predictive is their feedback of actual outcomes)
-3. User runs `orchestr8 feedback-config set minRating 3.5` to adjust threshold based on data
+3. User runs `murmur8 feedback-config set minRating 3.5` to adjust threshold based on data
 4. Future runs use updated threshold
 
 ### Alternative: Retry with Feedback-Informed Strategy
@@ -230,9 +230,9 @@ calibration[agent] = correlation(feedback_ratings[agent], outcome_success_binary
   - Modified: `shouldRetry()` to consider feedback chain
 
 - **bin/cli.js:** New command registration
-  - `orchestr8 feedback-config` (view)
-  - `orchestr8 feedback-config set <key> <value>`
-  - `orchestr8 insights --feedback`
+  - `murmur8 feedback-config` (view)
+  - `murmur8 feedback-config set <key> <value>`
+  - `murmur8 insights --feedback`
 
 ### File Dependencies
 

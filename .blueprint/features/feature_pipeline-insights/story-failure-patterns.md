@@ -11,7 +11,7 @@ As a developer, I want to analyze which pipeline stages fail most frequently so 
 - User has executed multiple pipeline runs, some of which have failed
 - History data includes entries with `status: "failed"` and associated stage information
 - This is a read-only analysis; no pipeline state is modified
-- Route: `orchestr8 insights` or `orchestr8 insights --failures`
+- Route: `murmur8 insights` or `murmur8 insights --failures`
 
 Per FEATURE_SPEC.md:Section 6 (Rule: Failure Pattern Analysis):
 - Failure rate threshold: >15% is reported as concerning
@@ -23,7 +23,7 @@ Per FEATURE_SPEC.md:Section 6 (Rule: Failure Pattern Analysis):
 
 **AC-1 — Display failure rates per stage**
 - Given the history file contains at least 3 pipeline runs with at least one failure,
-- When the user runs `orchestr8 insights`,
+- When the user runs `murmur8 insights`,
 - Then the output includes a "Failure Patterns" section showing failure rate for each stage that has experienced failures.
 
 **AC-2 — Identify most common failure stage**
@@ -47,13 +47,13 @@ Per FEATURE_SPEC.md:Section 6 (Rule: Failure Pattern Analysis):
 - Then those features are listed as correlation hints (e.g., "Feature 'complex-auth' has failed 3 times").
 
 **AC-6 — Filter to failures only**
-- Given the user runs `orchestr8 insights --failures`,
+- Given the user runs `murmur8 insights --failures`,
 - When the analysis completes,
 - Then only the failure pattern analysis section is displayed (other analysis types are omitted).
 
 **AC-7 — No failures recorded**
 - Given all pipeline runs in history have status "completed" (no failures),
-- When the user runs `orchestr8 insights`,
+- When the user runs `murmur8 insights`,
 - Then the failure analysis section displays: "No failures recorded" and is omitted from recommendations.
 
 ---

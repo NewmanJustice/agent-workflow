@@ -2,7 +2,7 @@
 
 ## Understanding
 
-The pipeline history feature provides observability into orchestr8 pipeline executions. It records execution metrics (timestamps, durations, status) during pipeline runs to `.claude/pipeline-history.json`, and provides CLI commands to display history (`orchestr8 history`), view statistics (`--stats`), and clear data (`history clear`). Per FEATURE_SPEC.md:Section 5, this creates new state without altering pipeline flow. Recording failures must not abort the pipeline.
+The pipeline history feature provides observability into murmur8 pipeline executions. It records execution metrics (timestamps, durations, status) during pipeline runs to `.claude/pipeline-history.json`, and provides CLI commands to display history (`murmur8 history`), view statistics (`--stats`), and clear data (`history clear`). Per FEATURE_SPEC.md:Section 5, this creates new state without altering pipeline flow. Recording failures must not abort the pipeline.
 
 Key behaviors: automatic recording at stage boundaries, JSON persistence, tabular display with color-coded status, aggregate statistics computation, and confirmation-protected clear functionality.
 

@@ -3,7 +3,7 @@
 ## 1. Feature Intent
 **Why this feature exists.**
 
-The `orchestr8 validate` command provides pre-flight checks to ensure the environment is correctly configured before running the `/implement-feature` pipeline. This addresses a common failure mode where users invoke the pipeline without required artifacts in place, leading to mid-pipeline failures that are harder to diagnose and recover from.
+The `murmur8 validate` command provides pre-flight checks to ensure the environment is correctly configured before running the `/implement-feature` pipeline. This addresses a common failure mode where users invoke the pipeline without required artifacts in place, leading to mid-pipeline failures that are harder to diagnose and recover from.
 
 **Problem being addressed:**
 - Pipeline failures mid-execution due to missing system spec, agent files, or skills
@@ -24,7 +24,7 @@ The `orchestr8 validate` command provides pre-flight checks to ensure the enviro
 ## 2. Scope
 
 ### In Scope
-- New CLI command `orchestr8 validate` accessible via `bin/cli.js`
+- New CLI command `murmur8 validate` accessible via `bin/cli.js`
 - Check: System spec exists at `.blueprint/system_specification/SYSTEM_SPEC.md`
 - Check: Required directories exist (`.blueprint/`, `.business_context/`, `.claude/commands/`)
 - Check: Agent spec files exist in `.blueprint/agents/` (AGENT_SPECIFICATION_ALEX.md, AGENT_BA_CASS.md, AGENT_TESTER_NIGEL.md, AGENT_DEVELOPER_CODEY.md)
@@ -47,7 +47,7 @@ The `orchestr8 validate` command provides pre-flight checks to ensure the enviro
 ## 3. Actors Involved
 
 ### Human User (Developer)
-- **Can do:** Invoke `orchestr8 validate` to check project readiness
+- **Can do:** Invoke `murmur8 validate` to check project readiness
 - **Can do:** Review validation output to understand what is missing
 - **Cannot do:** Auto-fix issues via this command (must run `init` or manually create files)
 
@@ -56,16 +56,16 @@ The `orchestr8 validate` command provides pre-flight checks to ensure the enviro
 ## 4. Behaviour Overview
 
 **Happy-path behaviour:**
-1. User runs `orchestr8 validate` in a project directory
+1. User runs `murmur8 validate` in a project directory
 2. Command performs all checks in sequence
 3. Each check prints a status line (checkmark for pass, X for fail)
 4. If all checks pass, prints overall success message and exits with code 0
 
 **Failure behaviour:**
-1. User runs `orchestr8 validate` in an incomplete project
+1. User runs `murmur8 validate` in an incomplete project
 2. Command performs all checks in sequence
 3. Failed checks print X with a description of what is missing
-4. After all checks, failed items include actionable fix suggestions (e.g., "Run `orchestr8 init` to create .blueprint directory")
+4. After all checks, failed items include actionable fix suggestions (e.g., "Run `murmur8 init` to create .blueprint directory")
 5. Command exits with non-zero exit code
 
 **User-visible outcomes:**

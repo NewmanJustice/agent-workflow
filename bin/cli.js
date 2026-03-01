@@ -203,7 +203,7 @@ const commands = {
         console.log(`  timeout:        ${config.timeout} min`);
         console.log(`  minDiskSpaceMB: ${config.minDiskSpaceMB}`);
         console.log(`  queueFile:      ${config.queueFile}`);
-        console.log('\nTo change: orchestr8 parallel-config set <key> <value>');
+        console.log('\nTo change: murmur8 parallel-config set <key> <value>');
       }
     },
     description: 'View or modify parallel pipeline configuration'
@@ -266,7 +266,7 @@ const commands = {
       } else {
         const slugs = args.slice(1).filter(a => !a.startsWith('--') && !a.startsWith('-'));
         if (slugs.length === 0) {
-          console.error('Usage: orchestr8 parallel <slug1> <slug2> ... [options]');
+          console.error('Usage: murmur8 parallel <slug1> <slug2> ... [options]');
           console.error('\nOptions:');
           console.error('  --dry-run            Preview execution plan without running');
           console.error('  --yes, -y            Skip confirmation prompt');
@@ -306,9 +306,9 @@ const commands = {
 
 function showHelp() {
   console.log(`
-orchestr8 - Multi-agent workflow framework
+murmur8 - Multi-agent workflow framework
 
-Usage: orchestr8 <command> [options]
+Usage: murmur8 <command> [options]
 
 Commands:
   init                  Initialize .blueprint directory in current project
@@ -353,14 +353,14 @@ Commands:
   help                  Show this help message
 
 Examples:
-  npx orchestr8 init
-  npx orchestr8 update
-  npx orchestr8 validate
-  npx orchestr8 queue
-  npx orchestr8 history
-  npx orchestr8 history --stats
-  npx orchestr8 insights --feedback
-  npx orchestr8 feedback-config
+  npx murmur8 init
+  npx murmur8 update
+  npx murmur8 validate
+  npx murmur8 queue
+  npx murmur8 history
+  npx murmur8 history --stats
+  npx murmur8 insights --feedback
+  npx murmur8 feedback-config
 `);
 }
 

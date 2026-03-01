@@ -794,7 +794,7 @@ Run `/implement-feature` again - reads queue and resumes from `current.stage`.
 
 ## Module Integration Summary (NEW)
 
-The pipeline integrates these orchestr8 modules:
+The pipeline integrates these murmur8 modules:
 
 | Module | File | Integration Points |
 |--------|------|-------------------|
@@ -808,26 +808,26 @@ The pipeline integrates these orchestr8 modules:
 
 ```bash
 # Pre-flight validation
-npx orchestr8 validate
+npx murmur8 validate
 
 # History management
-npx orchestr8 history
-npx orchestr8 history --stats
-npx orchestr8 history --all
+npx murmur8 history
+npx murmur8 history --stats
+npx murmur8 history --all
 
 # Pipeline insights
-npx orchestr8 insights
-npx orchestr8 insights --feedback
-npx orchestr8 insights --bottlenecks
-npx orchestr8 insights --failures
+npx murmur8 insights
+npx murmur8 insights --feedback
+npx murmur8 insights --bottlenecks
+npx murmur8 insights --failures
 
 # Retry configuration
-npx orchestr8 retry-config
-npx orchestr8 retry-config set maxRetries 5
+npx murmur8 retry-config
+npx murmur8 retry-config set maxRetries 5
 
 # Feedback configuration
-npx orchestr8 feedback-config
-npx orchestr8 feedback-config set minRatingThreshold 3.5
+npx murmur8 feedback-config
+npx murmur8 feedback-config set minRatingThreshold 3.5
 ```
 
 ### Data Files Created

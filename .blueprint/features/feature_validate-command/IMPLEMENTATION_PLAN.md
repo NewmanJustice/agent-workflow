@@ -2,7 +2,7 @@
 
 ## Summary
 
-Implement a new `orchestr8 validate` CLI command that performs pre-flight checks for directory existence, file presence, and Node.js version. The command outputs pass/fail status for each check with colorized indicators, provides actionable fix suggestions for failures, and returns appropriate exit codes (0 for success, 1 for failure).
+Implement a new `murmur8 validate` CLI command that performs pre-flight checks for directory existence, file presence, and Node.js version. The command outputs pass/fail status for each check with colorized indicators, provides actionable fix suggestions for failures, and returns appropriate exit codes (0 for success, 1 for failure).
 
 ---
 

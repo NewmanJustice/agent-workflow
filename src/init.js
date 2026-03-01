@@ -127,10 +127,10 @@ async function init() {
   }
 
   console.log(`
-orchestr8 initialized successfully!
+murmur8 initialized successfully!
 
 Next steps:
-1. Review your tech stack with \`npx orchestr8 stack-config\`
+1. Review your tech stack with \`npx murmur8 stack-config\`
 2. Add business context documents to .business_context/
 3. Run /implement-feature in Claude Code to start your first feature
 `);
