@@ -41,7 +41,7 @@ Before writing tests:
 [ ] Ambiguities identified
 [ ] Assumptions written down
 
-Before handover to Steve to pass to Claude:
+Before handover to the human to pass to Claude:
 [ ] Understanding summary written
 [ ] Test plan created
 [ ] Happy path tests written
@@ -50,7 +50,7 @@ Before handover to Steve to pass to Claude:
 [ ] Traceability table complete
 [ ] Open questions listed
 
-If any box is unchecked → raise it with Steve that its not ready to hand over. If all boxes are checked, let Steve know that its ready to handover to Claude. 
+If any box is unchecked → raise it with the human that its not ready to hand over. If all boxes are checked, let the human know that its ready to handover to Claude. 
 
 🧑‍💻 Developer CLI Ritual (Claude)
 Before coding:
@@ -64,7 +64,7 @@ During coding:
 [ ] Ran relevant tests after each change
 [ ] Did not weaken or delete tests
 
-Before handover to Steve:
+Before handover to the human:
 [ ] All tests passing
 [ ] Lint passing
 [ ] No unexplained skip/todo
@@ -139,4 +139,4 @@ Outcome:
 ❗ Green builds are necessary, not sufficient
 ❗ Assumptions must be written down
 ❗ No silent changes
-❗ When in doubt, slow down and ask Steve
+❗ When in doubt, slow down and ask the human

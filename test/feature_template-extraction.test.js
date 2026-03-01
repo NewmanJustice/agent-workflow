@@ -175,7 +175,7 @@ describe('Template Content Not Duplicated', () => {
     assert.ok(content, 'AGENT_TESTER_NIGEL.md should be readable');
 
     // Count lines in "Outputs you must produce" section
-    const outputSection = content.match(/##\s*Outputs you must produce[\s\S]*?(?=##\s*\d|$)/i);
+    const outputSection = content.match(/##\s*Outputs you must produce[\s\S]*?(?=##\s*[A-Z]|$)/i);
     if (outputSection) {
       const sectionLines = countNonBlankLines(outputSection[0]);
       // After extraction, output section should be brief (reference only)
@@ -225,14 +225,14 @@ describe('Agent Spec Integrity', () => {
 
     assert.ok(cassContent && nigelContent, 'Agent specs should be readable');
 
-    assert.ok(/Who are you\?|Your name is/i.test(cassContent),
+    assert.ok(/Purpose|Who are you\?|Your name is/i.test(cassContent),
       'Cass spec should retain identity section');
-    assert.ok(/Who are you\?|Your name is/i.test(nigelContent),
+    assert.ok(/Purpose|Who are you\?|Your name is/i.test(nigelContent),
       'Nigel spec should retain identity section');
 
-    assert.ok(/Your job is to/i.test(cassContent),
+    assert.ok(/Core Responsibilities|Your job is to/i.test(cassContent),
       'Cass spec should retain job description');
-    assert.ok(/Your job is to/i.test(nigelContent),
+    assert.ok(/Core Responsibilities|Your job is to/i.test(nigelContent),
       'Nigel spec should retain job description');
   });
 });

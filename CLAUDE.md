@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## TODO
 
-- [ ] Rename package from `orchestr8` to `murmur8` — update package.json name, bin command, all references in README, CLAUDE.md, CLI help text, agent specs, SKILL.md, and republish to npm
+- [ ] Rename package from `orchestr8` to `murmur8` — update package.json name, bin command, all references in README, CLAUDE.md, CLI help text, agent specs, SKILL.md, and republish to npm. Add a line about a murmuration of Starlings and moving together as one in the readme.
 
 ## Commands
 
@@ -61,7 +61,16 @@ node bin/cli.js parallel cleanup           # Remove completed worktrees
 
 ## Architecture
 
-orchestr8 is a multi-agent workflow framework that coordinates four AI agents (Alex, Cass, Nigel, Codey) to automate feature development from specification to implementation.
+orchestr8 is a multi-agent workflow framework that coordinates four AI agents to automate feature development from specification to implementation.
+
+### Agent Team
+
+| Agent | Role |
+|-------|------|
+| **Alex** | System Specification & Chief-of-Staff — creates/maintains specs, guards design coherence |
+| **Cass** | Story Writer/BA — translates specs into testable user stories |
+| **Nigel** | Tester — converts stories into executable tests and test plans |
+| **Codey** | Developer — implements code to satisfy tests (test-first) |
 
 ### Source Structure
 
@@ -80,7 +89,7 @@ orchestr8 is a multi-agent workflow framework that coordinates four AI agents (A
 - `src/business-context.js` - Lazy loading of business context based on feature needs
 - `src/parallel.js` - Parallel pipeline execution using git worktrees
 - `src/interactive.js` - Interactive mode for spec creation (system spec or feature spec)
-- `src/stack.js` - Configurable tech stack detection and configuration
+- `src/stack.js` - Configurable tech stack detection and configuration (auto-detects from package.json, pyproject.toml, go.mod, etc.)
 - `src/tools/` - Tool schemas, validation, and prompts for Claude native features
 
 ### Bundled Assets
@@ -143,3 +152,8 @@ The pipeline is optimized to avoid Claude's 4096 output token limit:
 - **Reference by path** - Agents reference other artifacts by path rather than quoting content
 
 If token errors occur, set `CLAUDE_CODE_MAX_OUTPUT_TOKENS` environment variable higher.
+
+## Skills
+
+Available skills (invoke via `/skill-name` in Claude Code):
+- `/implement-feature` - Run the full Alex → Cass → Nigel → Codey pipeline
