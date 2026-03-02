@@ -22,18 +22,18 @@ const {
   formatStatus,
   getDefaultConfig,
   splitByLimit,
-  runParallel,
+  runMurm,
   loadQueue,
   cleanupWorktrees,
-  readParallelConfig,
-  writeParallelConfig,
-  getDefaultParallelConfig,
-  abortParallel,
+  readMurmConfig,
+  writeMurmConfig,
+  getDefaultMurmConfig,
+  abortMurm,
   getLockInfo,
   getDetailedStatus,
   formatDetailedStatus,
-  rollbackParallel
-} = require('../src/parallel');
+  rollbackMurm
+} = require('../src/murm');
 
 const args = process.argv.slice(2);
 const command = args[0];
@@ -170,30 +170,30 @@ const commands = {
     },
     description: 'View or modify project tech stack configuration'
   },
-  'parallel-config': {
+  'murm-config': {
     fn: () => {
       if (subArg === 'set') {
         const key = args[2];
         const value = args[3];
         if (!key || !value) {
-          console.error('Usage: parallel-config set <key> <value>');
+          console.error('Usage: murm-config set <key> <value>');
           console.error('Valid keys: cli, skill, skillFlags, worktreeDir, maxConcurrency, queueFile');
           process.exit(1);
         }
-        const config = readParallelConfig();
+        const config = readMurmConfig();
         if (key === 'maxConcurrency') {
           config[key] = parseInt(value, 10);
         } else {
           config[key] = value;
         }
-        writeParallelConfig(config);
+        writeMurmConfig(config);
         console.log(`Set ${key} = ${value}`);
       } else if (subArg === 'reset') {
-        writeParallelConfig(getDefaultParallelConfig());
-        console.log('Parallel configuration reset to defaults.');
+        writeMurmConfig(getDefaultMurmConfig());
+        console.log('Murmuration configuration reset to defaults.');
       } else {
-        const config = readParallelConfig();
-        console.log('Parallel Configuration\n');
+        const config = readMurmConfig();
+        console.log('Murmuration Configuration\n');
         console.log(`  cli:            ${config.cli}`);
         console.log(`  skill:          ${config.skill}`);
         console.log(`  skillFlags:     ${config.skillFlags}`);
@@ -203,10 +203,15 @@ const commands = {
         console.log(`  timeout:        ${config.timeout} min`);
         console.log(`  minDiskSpaceMB: ${config.minDiskSpaceMB}`);
         console.log(`  queueFile:      ${config.queueFile}`);
-        console.log('\nTo change: murmur8 parallel-config set <key> <value>');
+        console.log('\nTo change: murmur8 murm-config set <key> <value>');
+        console.log('Run pipelines: murmur8 murm <slug1> <slug2> ...');
       }
     },
-    description: 'View or modify parallel pipeline configuration'
+    description: 'View or modify murmuration pipeline configuration'
+  },
+  'parallel-config': {
+    fn: null, // alias — set below
+    description: 'View or modify murmuration pipeline configuration (alias for murm-config)'
   },
   parallel: {
     fn: async () => {
@@ -222,29 +227,29 @@ const commands = {
 
           if (!queue.features || queue.features.length === 0) {
             if (lock) {
-              console.log(`Parallel execution in progress (PID: ${lock.pid})`);
+              console.log(`Murmuration execution in progress (PID: ${lock.pid})`);
               console.log(`Started: ${lock.startedAt}`);
               console.log(`Features: ${lock.features.join(', ')}`);
             } else {
-              console.log('No parallel pipelines active.');
+              console.log('No murmuration pipelines active.');
             }
             return;
           }
 
-          console.log('Parallel Pipeline Status\n');
+          console.log('Murmuration Pipeline Status\n');
           console.log(formatStatus(queue.features));
           const summary = {
-            running: queue.features.filter(f => f.status === 'parallel_running').length,
-            pending: queue.features.filter(f => f.status === 'parallel_queued').length,
-            completed: queue.features.filter(f => f.status === 'parallel_complete').length,
-            failed: queue.features.filter(f => f.status === 'parallel_failed').length,
+            running: queue.features.filter(f => f.status === 'murm_running').length,
+            pending: queue.features.filter(f => f.status === 'murm_queued').length,
+            completed: queue.features.filter(f => f.status === 'murm_complete').length,
+            failed: queue.features.filter(f => f.status === 'murm_failed').length,
             conflicts: queue.features.filter(f => f.status === 'merge_conflict').length
           };
           console.log(`\nRunning: ${summary.running} | Pending: ${summary.pending} | Completed: ${summary.completed} | Failed: ${summary.failed} | Conflicts: ${summary.conflicts}`);
 
           // Show log paths for running/failed
           const withLogs = queue.features.filter(f =>
-            f.logPath && (f.status === 'parallel_running' || f.status === 'parallel_failed')
+            f.logPath && (f.status === 'murm_running' || f.status === 'murm_failed')
           );
           if (withLogs.length > 0) {
             console.log('\nLog files:');
@@ -256,17 +261,17 @@ const commands = {
       } else if (subArg === 'rollback') {
         const dryRunFlag = args.includes('--dry-run');
         const forceFlag = args.includes('--force');
-        await rollbackParallel({ dryRun: dryRunFlag, force: forceFlag });
+        await rollbackMurm({ dryRun: dryRunFlag, force: forceFlag });
       } else if (subArg === 'cleanup') {
         const cleaned = await cleanupWorktrees();
         console.log(`Cleaned ${cleaned} worktree(s).`);
       } else if (subArg === 'abort') {
         const cleanupFlag = args.includes('--cleanup');
-        await abortParallel({ cleanup: cleanupFlag });
+        await abortMurm({ cleanup: cleanupFlag });
       } else {
         const slugs = args.slice(1).filter(a => !a.startsWith('--') && !a.startsWith('-'));
         if (slugs.length === 0) {
-          console.error('Usage: murmur8 parallel <slug1> <slug2> ... [options]');
+          console.error('Usage: murmur8 murm <slug1> <slug2> ... [options]');
           console.error('\nOptions:');
           console.error('  --dry-run            Preview execution plan without running');
           console.error('  --yes, -y            Skip confirmation prompt');
@@ -275,9 +280,9 @@ const commands = {
           console.error('  --skip-preflight     Skip feature validation checks');
           console.error('  --max-concurrency=N  Set max parallel pipelines (default: 3)');
           console.error('\nSubcommands:');
-          console.error('  parallel status    Show status of all pipelines');
-          console.error('  parallel abort     Stop all running pipelines');
-          console.error('  parallel cleanup   Remove completed/aborted worktrees');
+          console.error('  murm status    Show status of all pipelines');
+          console.error('  murm abort     Stop all running pipelines');
+          console.error('  murm cleanup   Remove completed/aborted worktrees');
           process.exit(1);
         }
 
@@ -292,17 +297,30 @@ const commands = {
         if (maxFlag) {
           options.maxConcurrency = parseInt(maxFlag.split('=')[1], 10);
         }
-        const result = await runParallel(slugs, options);
+        const result = await runMurm(slugs, options);
         process.exit(result.success ? 0 : 1);
       }
     },
     description: 'Run multiple feature pipelines in parallel using git worktrees'
+  },
+  murm: {
+    fn: null, // alias — set below
+    description: 'Run multiple feature pipelines in parallel (murmuration)'
+  },
+  murmuration: {
+    fn: null, // alias — set below
+    description: 'Run multiple feature pipelines in parallel (murmuration)'
   },
   help: {
     fn: showHelp,
     description: 'Show this help message'
   }
 };
+
+// Wire aliases
+commands.murm.fn = commands.parallel.fn;
+commands.murmuration.fn = commands.parallel.fn;
+commands['parallel-config'].fn = commands['murm-config'].fn;
 
 function showHelp() {
   console.log(`
@@ -335,22 +353,25 @@ Commands:
   stack-config          View current tech stack configuration
   stack-config set <key> <value>  Modify a config value (language, runtime, frameworks, etc.)
   stack-config reset    Reset tech stack configuration to defaults
-  parallel <slugs...>   Run multiple feature pipelines in parallel
-  parallel <slugs...> --dry-run  Show execution plan without running
-  parallel <slugs...> --yes      Skip confirmation prompt
-  parallel <slugs...> --verbose  Stream output to console
-  parallel <slugs...> --skip-preflight  Skip feature validation checks
-  parallel status       Show status of all parallel pipelines
-  parallel status --detailed  Show progress bars and stage info
-  parallel abort        Stop all running pipelines
-  parallel abort --cleanup  Stop all and remove worktrees
-  parallel rollback     Undo completed merges and cleanup failures
-  parallel rollback --dry-run  Preview what would be rolled back
-  parallel cleanup      Remove completed/aborted worktrees
-  parallel-config       View parallel pipeline configuration
-  parallel-config set <key> <value>  Modify config (cli, skill, skillFlags, etc.)
-  parallel-config reset Reset parallel configuration to defaults
+  murm <slugs...>       Run multiple feature pipelines in parallel (murmuration)
+  murm <slugs...> --dry-run  Show execution plan without running
+  murm <slugs...> --yes      Skip confirmation prompt
+  murm <slugs...> --verbose  Stream output to console
+  murm <slugs...> --skip-preflight  Skip feature validation checks
+  murm status           Show status of all parallel pipelines
+  murm status --detailed  Show progress bars and stage info
+  murm abort            Stop all running pipelines
+  murm abort --cleanup  Stop all and remove worktrees
+  murm rollback         Undo completed merges and cleanup failures
+  murm rollback --dry-run  Preview what would be rolled back
+  murm cleanup          Remove completed/aborted worktrees
+  murm-config           View murmuration pipeline configuration
+  murm-config set <key> <value>  Modify config (cli, skill, skillFlags, etc.)
+  murm-config reset     Reset murmuration configuration to defaults
   help                  Show this help message
+
+  Aliases: parallel, murmuration (same as murm)
+           parallel-config (same as murm-config)
 
 Examples:
   npx murmur8 init
@@ -360,7 +381,7 @@ Examples:
   npx murmur8 history
   npx murmur8 history --stats
   npx murmur8 insights --feedback
-  npx murmur8 feedback-config
+  npx murmur8 murm user-auth dashboard --dry-run
 `);
 }
 

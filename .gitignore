@@ -7,3 +7,13 @@ node_modules/
 
 # agent-workflow queue
 .claude/implement-queue.json
+
+# Murmuration state files
+.claude/murm-config.json
+.claude/murm-queue.json
+.claude/murm.lock
+
+# Legacy parallel state files (pre-migration)
+.claude/parallel-config.json
+.claude/parallel-queue.json
+.claude/parallel.lock

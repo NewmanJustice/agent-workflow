@@ -5,17 +5,17 @@ const fs = require('fs');
 const os = require('os');
 
 // Module under test (to be implemented)
-const parallelPath = path.join(__dirname, '..', 'src', 'parallel.js');
+const murmPath = path.join(__dirname, "..", "src", "murm.js");
 
-describe('parallel-features', () => {
-  let parallel;
+describe('murm-features', () => {
+  let murm;
   let tempDir;
 
   beforeEach(() => {
-    if (fs.existsSync(parallelPath)) {
-      parallel = require(parallelPath);
+    if (fs.existsSync(murmPath)) {
+      murm = require(murmPath);
     }
-    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'parallel-test-'));
+    tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'murm-test-'));
   });
 
   afterEach(() => {
@@ -26,56 +26,56 @@ describe('parallel-features', () => {
 
   describe('worktree management', () => {
     it('T-WM-1.1: builds worktree path at .claude/worktrees/feat-{slug}', () => {
-      if (!parallel) return;
-      const result = parallel.buildWorktreePath('user-auth');
+      if (!murm) return;
+      const result = murm.buildWorktreePath('user-auth');
       assert.strictEqual(result, '.claude/worktrees/feat-user-auth');
     });
 
     it('T-WM-1.2: builds branch name as feature/{slug}', () => {
-      if (!parallel) return;
-      const result = parallel.buildBranchName('user-auth');
+      if (!murm) return;
+      const result = murm.buildBranchName('user-auth');
       assert.strictEqual(result, 'feature/user-auth');
     });
 
     it('T-WM-2.1: marks worktree for cleanup on success', () => {
-      if (!parallel) return;
-      const state = { status: 'parallel_complete', slug: 'test' };
-      assert.strictEqual(parallel.shouldCleanupWorktree(state), true);
+      if (!murm) return;
+      const state = { status: 'murm_complete', slug: 'test' };
+      assert.strictEqual(murm.shouldCleanupWorktree(state), true);
     });
 
     it('T-WM-2.2: preserves worktree on pipeline failure', () => {
-      if (!parallel) return;
-      const state = { status: 'parallel_failed', slug: 'test' };
-      assert.strictEqual(parallel.shouldCleanupWorktree(state), false);
+      if (!murm) return;
+      const state = { status: 'murm_failed', slug: 'test' };
+      assert.strictEqual(murm.shouldCleanupWorktree(state), false);
     });
 
     it('T-WM-2.3: preserves worktree on merge conflict', () => {
-      if (!parallel) return;
+      if (!murm) return;
       const state = { status: 'merge_conflict', slug: 'test' };
-      assert.strictEqual(parallel.shouldCleanupWorktree(state), false);
+      assert.strictEqual(murm.shouldCleanupWorktree(state), false);
     });
   });
 
   describe('pre-flight validation', () => {
     it('T-PV-1.1: rejects if not in git repository', () => {
-      if (!parallel) return;
-      const result = parallel.validatePreFlight({ isGitRepo: false });
+      if (!murm) return;
+      const result = murm.validatePreFlight({ isGitRepo: false });
       assert.strictEqual(result.valid, false);
       assert.ok(result.errors.some(e => e.includes('git repository')));
     });
 
     it('T-PV-1.2: rejects if working tree is dirty', () => {
-      if (!parallel) return;
-      const result = parallel.validatePreFlight({ isGitRepo: true, isDirty: true });
+      if (!murm) return;
+      const result = murm.validatePreFlight({ isGitRepo: true, isDirty: true });
       assert.strictEqual(result.valid, false);
       assert.ok(result.errors.some(e => e.includes('dirty') || e.includes('uncommitted')));
     });
 
     it('T-PV-1.3: validates git version 2.5+ for worktree support', () => {
-      if (!parallel) return;
-      const tooOld = parallel.isGitVersionSupported('2.4.0');
-      const supported = parallel.isGitVersionSupported('2.5.0');
-      const newer = parallel.isGitVersionSupported('2.40.0');
+      if (!murm) return;
+      const tooOld = murm.isGitVersionSupported('2.4.0');
+      const supported = murm.isGitVersionSupported('2.5.0');
+      const newer = murm.isGitVersionSupported('2.40.0');
       assert.strictEqual(tooOld, false);
       assert.strictEqual(supported, true);
       assert.strictEqual(newer, true);
@@ -84,15 +84,15 @@ describe('parallel-features', () => {
 
   describe('concurrency control', () => {
     it('T-CC-1.1: default maxConcurrency is 3', () => {
-      if (!parallel) return;
-      const config = parallel.getDefaultConfig();
+      if (!murm) return;
+      const config = murm.getDefaultConfig();
       assert.strictEqual(config.maxConcurrency, 3);
     });
 
     it('T-CC-1.2: splits features into active and queued based on limit', () => {
-      if (!parallel) return;
+      if (!murm) return;
       const slugs = ['a', 'b', 'c', 'd', 'e'];
-      const result = parallel.splitByLimit(slugs, 3);
+      const result = murm.splitByLimit(slugs, 3);
       assert.strictEqual(result.active.length, 3);
       assert.strictEqual(result.queued.length, 2);
       assert.deepStrictEqual(result.active, ['a', 'b', 'c']);
@@ -100,22 +100,22 @@ describe('parallel-features', () => {
     });
 
     it('T-CC-1.3: promotes queued feature when slot frees', () => {
-      if (!parallel) return;
+      if (!murm) return;
       const state = {
         active: ['a', 'b'],
         queued: ['c', 'd'],
         maxConcurrency: 3
       };
-      const updated = parallel.promoteFromQueue(state);
+      const updated = murm.promoteFromQueue(state);
       assert.strictEqual(updated.active.length, 3);
       assert.strictEqual(updated.queued.length, 1);
       assert.ok(updated.active.includes('c'));
     });
 
     it('T-CC-1.4: respects custom maxConcurrency', () => {
-      if (!parallel) return;
+      if (!murm) return;
       const slugs = ['a', 'b', 'c', 'd'];
-      const result = parallel.splitByLimit(slugs, 2);
+      const result = murm.splitByLimit(slugs, 2);
       assert.strictEqual(result.active.length, 2);
       assert.strictEqual(result.queued.length, 2);
     });
@@ -123,39 +123,39 @@ describe('parallel-features', () => {
 
   describe('pipeline execution', () => {
     it('T-PE-1.1: builds pipeline command for worktree', () => {
-      if (!parallel) return;
-      const cmd = parallel.buildPipelineCommand('user-auth', '/path/to/worktree');
+      if (!murm) return;
+      const cmd = murm.buildPipelineCommand('user-auth', '/path/to/worktree');
       assert.ok(cmd.includes('implement-feature'));
       assert.ok(cmd.includes('user-auth'));
     });
 
     it('T-PE-1.2: pipelines have independent queue files', () => {
-      if (!parallel) return;
-      const path1 = parallel.getQueuePath('/worktree1');
-      const path2 = parallel.getQueuePath('/worktree2');
+      if (!murm) return;
+      const path1 = murm.getQueuePath('/worktree1');
+      const path2 = murm.getQueuePath('/worktree2');
       assert.notStrictEqual(path1, path2);
     });
 
     it('T-PE-1.3: failure state is isolated to single feature', () => {
-      if (!parallel) return;
+      if (!murm) return;
       const states = [
-        { slug: 'a', status: 'parallel_complete' },
-        { slug: 'b', status: 'parallel_failed' },
-        { slug: 'c', status: 'parallel_running' }
+        { slug: 'a', status: 'murm_complete' },
+        { slug: 'b', status: 'murm_failed' },
+        { slug: 'c', status: 'murm_running' }
       ];
-      const failed = states.filter(s => s.status === 'parallel_failed');
+      const failed = states.filter(s => s.status === 'murm_failed');
       assert.strictEqual(failed.length, 1);
       assert.strictEqual(failed[0].slug, 'b');
     });
 
     it('T-PE-1.4: aggregates results from all pipelines', () => {
-      if (!parallel) return;
+      if (!murm) return;
       const results = [
-        { slug: 'a', status: 'parallel_complete' },
-        { slug: 'b', status: 'parallel_failed' },
-        { slug: 'c', status: 'parallel_complete' }
+        { slug: 'a', status: 'murm_complete' },
+        { slug: 'b', status: 'murm_failed' },
+        { slug: 'c', status: 'murm_complete' }
       ];
-      const summary = parallel.aggregateResults(results);
+      const summary = murm.aggregateResults(results);
       assert.strictEqual(summary.completed, 2);
       assert.strictEqual(summary.failed, 1);
       assert.strictEqual(summary.total, 3);
@@ -164,45 +164,45 @@ describe('parallel-features', () => {
 
   describe('merge handling', () => {
     it('T-MH-1.1: detects fast-forward possibility', () => {
-      if (!parallel) return;
-      const canFF = parallel.canFastForward({ mainHead: 'abc', branchBase: 'abc' });
+      if (!murm) return;
+      const canFF = murm.canFastForward({ mainHead: 'abc', branchBase: 'abc' });
       assert.strictEqual(canFF, true);
     });
 
     it('T-MH-1.2: falls back to merge commit when no fast-forward', () => {
-      if (!parallel) return;
-      const canFF = parallel.canFastForward({ mainHead: 'xyz', branchBase: 'abc' });
+      if (!murm) return;
+      const canFF = murm.canFastForward({ mainHead: 'xyz', branchBase: 'abc' });
       assert.strictEqual(canFF, false);
     });
 
     it('T-MH-1.3: orders features by completion time for merge', () => {
-      if (!parallel) return;
+      if (!murm) return;
       const features = [
         { slug: 'a', completedAt: '2026-02-25T10:05:00Z' },
         { slug: 'b', completedAt: '2026-02-25T10:02:00Z' },
         { slug: 'c', completedAt: '2026-02-25T10:08:00Z' }
       ];
-      const ordered = parallel.orderByCompletion(features);
+      const ordered = murm.orderByCompletion(features);
       assert.deepStrictEqual(ordered.map(f => f.slug), ['b', 'a', 'c']);
     });
 
     it('T-MH-2.1: identifies merge conflict from git output', () => {
-      if (!parallel) return;
+      if (!murm) return;
       const output = 'CONFLICT (content): Merge conflict in src/index.js';
-      assert.strictEqual(parallel.hasMergeConflict(output), true);
+      assert.strictEqual(murm.hasMergeConflict(output), true);
     });
 
     it('T-MH-2.2: transitions to merge_conflict state on conflict', () => {
-      if (!parallel) return;
+      if (!murm) return;
       const state = { slug: 'test', status: 'merge_pending' };
-      const updated = parallel.handleMergeConflict(state);
+      const updated = murm.handleMergeConflict(state);
       assert.strictEqual(updated.status, 'merge_conflict');
     });
 
     it('T-MH-2.3: includes conflict details in state', () => {
-      if (!parallel) return;
+      if (!murm) return;
       const conflictOutput = 'CONFLICT in src/index.js\nAutomatic merge failed';
-      const state = parallel.handleMergeConflict({ slug: 'test' }, conflictOutput);
+      const state = murm.handleMergeConflict({ slug: 'test' }, conflictOutput);
       assert.ok(state.conflictDetails);
       assert.ok(state.conflictDetails.includes('src/index.js'));
     });
@@ -210,34 +210,34 @@ describe('parallel-features', () => {
 
   describe('status reporting', () => {
     it('T-SR-1.1: formats status for all pipelines', () => {
-      if (!parallel) return;
+      if (!murm) return;
       const states = [
-        { slug: 'a', status: 'parallel_running' },
-        { slug: 'b', status: 'parallel_complete' }
+        { slug: 'a', status: 'murm_running' },
+        { slug: 'b', status: 'murm_complete' }
       ];
-      const output = parallel.formatStatus(states);
+      const output = murm.formatStatus(states);
       assert.ok(output.includes('a'));
       assert.ok(output.includes('b'));
       assert.ok(output.includes('running') || output.includes('complete'));
     });
 
     it('T-SR-1.2: shows per-feature state in status', () => {
-      if (!parallel) return;
-      const state = { slug: 'user-auth', status: 'parallel_running', stage: 'nigel' };
-      const line = parallel.formatFeatureStatus(state);
+      if (!murm) return;
+      const state = { slug: 'user-auth', status: 'murm_running', stage: 'nigel' };
+      const line = murm.formatFeatureStatus(state);
       assert.ok(line.includes('user-auth'));
       assert.ok(line.includes('running') || line.includes('nigel'));
     });
 
     it('T-SR-1.3: summarizes final counts', () => {
-      if (!parallel) return;
+      if (!murm) return;
       const results = [
-        { status: 'parallel_complete' },
-        { status: 'parallel_complete' },
-        { status: 'parallel_failed' },
+        { status: 'murm_complete' },
+        { status: 'murm_complete' },
+        { status: 'murm_failed' },
         { status: 'merge_conflict' }
       ];
-      const summary = parallel.summarizeFinal(results);
+      const summary = murm.summarizeFinal(results);
       assert.strictEqual(summary.completed, 2);
       assert.strictEqual(summary.failed, 1);
       assert.strictEqual(summary.conflicts, 1);
@@ -246,87 +246,87 @@ describe('parallel-features', () => {
 
   describe('state management', () => {
     it('T-SM-1.1: transitions from queued to worktree_created to running', () => {
-      if (!parallel) return;
-      let state = { slug: 'test', status: 'parallel_queued' };
-      state = parallel.transition(state, 'worktree_created');
+      if (!murm) return;
+      let state = { slug: 'test', status: 'murm_queued' };
+      state = murm.transition(state, 'worktree_created');
       assert.strictEqual(state.status, 'worktree_created');
-      state = parallel.transition(state, 'parallel_running');
-      assert.strictEqual(state.status, 'parallel_running');
+      state = murm.transition(state, 'murm_running');
+      assert.strictEqual(state.status, 'murm_running');
     });
 
     it('T-SM-1.2: transitions from running to merge_pending to complete', () => {
-      if (!parallel) return;
-      let state = { slug: 'test', status: 'parallel_running' };
-      state = parallel.transition(state, 'merge_pending');
+      if (!murm) return;
+      let state = { slug: 'test', status: 'murm_running' };
+      state = murm.transition(state, 'merge_pending');
       assert.strictEqual(state.status, 'merge_pending');
-      state = parallel.transition(state, 'parallel_complete');
-      assert.strictEqual(state.status, 'parallel_complete');
+      state = murm.transition(state, 'murm_complete');
+      assert.strictEqual(state.status, 'murm_complete');
     });
 
     it('T-SM-1.3: transitions from running to failed', () => {
-      if (!parallel) return;
-      let state = { slug: 'test', status: 'parallel_running' };
-      state = parallel.transition(state, 'parallel_failed');
-      assert.strictEqual(state.status, 'parallel_failed');
+      if (!murm) return;
+      let state = { slug: 'test', status: 'murm_running' };
+      state = murm.transition(state, 'murm_failed');
+      assert.strictEqual(state.status, 'murm_failed');
     });
 
     it('T-SM-1.4: transitions from merge_pending to conflict', () => {
-      if (!parallel) return;
+      if (!murm) return;
       let state = { slug: 'test', status: 'merge_pending' };
-      state = parallel.transition(state, 'merge_conflict');
+      state = murm.transition(state, 'merge_conflict');
       assert.strictEqual(state.status, 'merge_conflict');
     });
   });
 
   describe('user control', () => {
     it('T-UC-1.1: can abort single feature', () => {
-      if (!parallel) return;
+      if (!murm) return;
       const states = [
-        { slug: 'a', status: 'parallel_running' },
-        { slug: 'b', status: 'parallel_running' }
+        { slug: 'a', status: 'murm_running' },
+        { slug: 'b', status: 'murm_running' }
       ];
-      const updated = parallel.abortFeature(states, 'a');
+      const updated = murm.abortFeature(states, 'a');
       const aborted = updated.find(s => s.slug === 'a');
       const running = updated.find(s => s.slug === 'b');
       assert.strictEqual(aborted.status, 'aborted');
-      assert.strictEqual(running.status, 'parallel_running');
+      assert.strictEqual(running.status, 'murm_running');
     });
 
     it('T-UC-1.2: can abort all features', () => {
-      if (!parallel) return;
+      if (!murm) return;
       const states = [
-        { slug: 'a', status: 'parallel_running' },
-        { slug: 'b', status: 'parallel_running' }
+        { slug: 'a', status: 'murm_running' },
+        { slug: 'b', status: 'murm_running' }
       ];
-      const updated = parallel.abortAll(states);
+      const updated = murm.abortAll(states);
       assert.ok(updated.every(s => s.status === 'aborted'));
     });
 
     it('T-UC-1.3: aborted worktrees marked for cleanup', () => {
-      if (!parallel) return;
+      if (!murm) return;
       const state = { slug: 'test', status: 'aborted' };
-      assert.strictEqual(parallel.shouldCleanupWorktree(state), true);
+      assert.strictEqual(murm.shouldCleanupWorktree(state), true);
     });
   });
 
   describe('git operations', () => {
     it('T-GO-1.1: checkGitStatus returns git repo info', () => {
-      if (!parallel) return;
-      const status = parallel.checkGitStatus();
+      if (!murm) return;
+      const status = murm.checkGitStatus();
       assert.strictEqual(typeof status.isGitRepo, 'boolean');
       assert.strictEqual(typeof status.isDirty, 'boolean');
       assert.strictEqual(typeof status.gitVersion, 'string');
     });
 
     it('T-GO-1.2: checkGitStatus detects current repo as git repo', () => {
-      if (!parallel) return;
-      const status = parallel.checkGitStatus();
+      if (!murm) return;
+      const status = murm.checkGitStatus();
       assert.strictEqual(status.isGitRepo, true);
     });
 
     it('T-GO-1.3: getCurrentBranch returns branch name', () => {
-      if (!parallel) return;
-      const branch = parallel.getCurrentBranch();
+      if (!murm) return;
+      const branch = murm.getCurrentBranch();
       assert.strictEqual(typeof branch, 'string');
       assert.ok(branch.length > 0);
     });
@@ -334,281 +334,281 @@ describe('parallel-features', () => {
 
   describe('queue persistence', () => {
     it('T-QP-1.1: loadQueue returns empty queue when file missing', () => {
-      if (!parallel) return;
-      // Note: This test assumes no parallel-queue.json exists initially
+      if (!murm) return;
+      // Note: This test assumes no murm-queue.json exists initially
       // In practice, loadQueue handles missing file gracefully
-      const queue = parallel.loadQueue();
+      const queue = murm.loadQueue();
       assert.ok(queue);
       assert.ok(Array.isArray(queue.features) || queue.features === undefined);
     });
 
     it('T-QP-1.2: saveQueue creates queue file', () => {
-      if (!parallel) return;
+      if (!murm) return;
       const testQueue = { features: [], startedAt: new Date().toISOString() };
       // saveQueue would create the file - we just verify the function exists
-      assert.strictEqual(typeof parallel.saveQueue, 'function');
+      assert.strictEqual(typeof murm.saveQueue, 'function');
     });
 
     it('T-QP-1.3: QUEUE_FILE constant is defined', () => {
-      if (!parallel) return;
-      assert.strictEqual(parallel.QUEUE_FILE, '.claude/parallel-queue.json');
+      if (!murm) return;
+      assert.strictEqual(murm.QUEUE_FILE, '.claude/murm-queue.json');
     });
   });
 
   describe('execution functions', () => {
-    it('T-EX-1.1: runParallel is async function', () => {
-      if (!parallel) return;
-      assert.strictEqual(typeof parallel.runParallel, 'function');
+    it('T-EX-1.1: runMurm is async function', () => {
+      if (!murm) return;
+      assert.strictEqual(typeof murm.runMurm, 'function');
     });
 
     it('T-EX-1.2: runPipelineInWorktree returns promise', () => {
-      if (!parallel) return;
-      assert.strictEqual(typeof parallel.runPipelineInWorktree, 'function');
+      if (!murm) return;
+      assert.strictEqual(typeof murm.runPipelineInWorktree, 'function');
     });
 
     it('T-EX-1.3: cleanupWorktrees is async function', () => {
-      if (!parallel) return;
-      assert.strictEqual(typeof parallel.cleanupWorktrees, 'function');
+      if (!murm) return;
+      assert.strictEqual(typeof murm.cleanupWorktrees, 'function');
     });
 
     it('T-EX-1.4: createWorktree is exported', () => {
-      if (!parallel) return;
-      assert.strictEqual(typeof parallel.createWorktree, 'function');
+      if (!murm) return;
+      assert.strictEqual(typeof murm.createWorktree, 'function');
     });
 
     it('T-EX-1.5: removeWorktree is exported', () => {
-      if (!parallel) return;
-      assert.strictEqual(typeof parallel.removeWorktree, 'function');
+      if (!murm) return;
+      assert.strictEqual(typeof murm.removeWorktree, 'function');
     });
 
     it('T-EX-1.6: mergeBranch is exported', () => {
-      if (!parallel) return;
-      assert.strictEqual(typeof parallel.mergeBranch, 'function');
+      if (!murm) return;
+      assert.strictEqual(typeof murm.mergeBranch, 'function');
     });
   });
 
   describe('confirmation safeguard', () => {
     it('T-CF-1.1: buildConfirmMessage returns string', () => {
-      if (!parallel) return;
-      const msg = parallel.buildConfirmMessage(['a', 'b'], { maxConcurrency: 3 });
+      if (!murm) return;
+      const msg = murm.buildConfirmMessage(['a', 'b'], { maxConcurrency: 3 });
       assert.strictEqual(typeof msg, 'string');
       assert.ok(msg.includes('worktree'));
     });
 
     it('T-CF-1.2: buildConfirmMessage shows feature count', () => {
-      if (!parallel) return;
-      const msg = parallel.buildConfirmMessage(['a', 'b', 'c'], { maxConcurrency: 3 });
+      if (!murm) return;
+      const msg = murm.buildConfirmMessage(['a', 'b', 'c'], { maxConcurrency: 3 });
       assert.ok(msg.includes('3'));
     });
 
     it('T-CF-1.3: promptConfirm is exported', () => {
-      if (!parallel) return;
-      assert.strictEqual(typeof parallel.promptConfirm, 'function');
+      if (!murm) return;
+      assert.strictEqual(typeof murm.promptConfirm, 'function');
     });
   });
 
   describe('lock safeguard', () => {
     it('T-LK-1.1: LOCK_FILE constant is defined', () => {
-      if (!parallel) return;
-      assert.strictEqual(parallel.LOCK_FILE, '.claude/parallel.lock');
+      if (!murm) return;
+      assert.strictEqual(murm.LOCK_FILE, '.claude/murm.lock');
     });
 
     it('T-LK-1.2: acquireLock returns object with acquired property', () => {
-      if (!parallel) return;
+      if (!murm) return;
       // Clean up any existing lock first
-      parallel.releaseLock();
-      const result = parallel.acquireLock(['test']);
+      murm.releaseLock();
+      const result = murm.acquireLock(['test']);
       assert.strictEqual(typeof result.acquired, 'boolean');
-      parallel.releaseLock(); // Clean up
+      murm.releaseLock(); // Clean up
     });
 
     it('T-LK-1.3: releaseLock is exported', () => {
-      if (!parallel) return;
-      assert.strictEqual(typeof parallel.releaseLock, 'function');
+      if (!murm) return;
+      assert.strictEqual(typeof murm.releaseLock, 'function');
     });
 
     it('T-LK-1.4: getLockInfo returns null when no lock', () => {
-      if (!parallel) return;
-      parallel.releaseLock();
-      const info = parallel.getLockInfo();
+      if (!murm) return;
+      murm.releaseLock();
+      const info = murm.getLockInfo();
       assert.strictEqual(info, null);
     });
 
     it('T-LK-1.5: getLockInfo returns lock data when locked', () => {
-      if (!parallel) return;
-      parallel.releaseLock();
-      parallel.acquireLock(['test-feat']);
-      const info = parallel.getLockInfo();
+      if (!murm) return;
+      murm.releaseLock();
+      murm.acquireLock(['test-feat']);
+      const info = murm.getLockInfo();
       assert.ok(info);
       assert.strictEqual(info.pid, process.pid);
       assert.ok(info.features.includes('test-feat'));
-      parallel.releaseLock(); // Clean up
+      murm.releaseLock(); // Clean up
     });
   });
 
   describe('logging safeguard', () => {
     it('T-LG-1.1: createLogStream is exported', () => {
-      if (!parallel) return;
-      assert.strictEqual(typeof parallel.createLogStream, 'function');
+      if (!murm) return;
+      assert.strictEqual(typeof murm.createLogStream, 'function');
     });
 
     it('T-LG-1.2: logWithTimestamp is exported', () => {
-      if (!parallel) return;
-      assert.strictEqual(typeof parallel.logWithTimestamp, 'function');
+      if (!murm) return;
+      assert.strictEqual(typeof murm.logWithTimestamp, 'function');
     });
   });
 
   describe('abort safeguard', () => {
-    it('T-AB-1.1: abortParallel is exported', () => {
-      if (!parallel) return;
-      assert.strictEqual(typeof parallel.abortParallel, 'function');
+    it('T-AB-1.1: abortMurm is exported', () => {
+      if (!murm) return;
+      assert.strictEqual(typeof murm.abortMurm, 'function');
     });
 
     it('T-AB-1.2: setupAbortHandler is exported', () => {
-      if (!parallel) return;
-      assert.strictEqual(typeof parallel.setupAbortHandler, 'function');
+      if (!murm) return;
+      assert.strictEqual(typeof murm.setupAbortHandler, 'function');
     });
   });
 
   describe('feature limit safeguard (P1)', () => {
     it('T-FL-1.1: validateFeatureLimit passes for small batches', () => {
-      if (!parallel) return;
-      const result = parallel.validateFeatureLimit(['a', 'b', 'c']);
+      if (!murm) return;
+      const result = murm.validateFeatureLimit(['a', 'b', 'c']);
       assert.strictEqual(result.valid, true);
     });
 
     it('T-FL-1.2: validateFeatureLimit fails for large batches', () => {
-      if (!parallel) return;
+      if (!murm) return;
       const manyFeatures = Array.from({ length: 15 }, (_, i) => `feat-${i}`);
-      const result = parallel.validateFeatureLimit(manyFeatures);
+      const result = murm.validateFeatureLimit(manyFeatures);
       assert.strictEqual(result.valid, false);
       assert.ok(result.error.includes('Too many features'));
     });
 
     it('T-FL-1.3: default maxFeatures is 10', () => {
-      if (!parallel) return;
-      const config = parallel.getDefaultParallelConfig();
+      if (!murm) return;
+      const config = murm.getDefaultMurmConfig();
       assert.strictEqual(config.maxFeatures, 10);
     });
   });
 
   describe('disk space safeguard (P1)', () => {
     it('T-DS-1.1: checkDiskSpace returns object with availableMB', () => {
-      if (!parallel) return;
-      const result = parallel.checkDiskSpace();
+      if (!murm) return;
+      const result = murm.checkDiskSpace();
       assert.strictEqual(typeof result.availableMB, 'number');
       assert.strictEqual(typeof result.sufficient, 'boolean');
     });
 
     it('T-DS-1.2: validateDiskSpace returns valid property', () => {
-      if (!parallel) return;
-      const result = parallel.validateDiskSpace();
+      if (!murm) return;
+      const result = murm.validateDiskSpace();
       assert.strictEqual(typeof result.valid, 'boolean');
     });
 
     it('T-DS-1.3: default minDiskSpaceMB is 500', () => {
-      if (!parallel) return;
-      const config = parallel.getDefaultParallelConfig();
+      if (!murm) return;
+      const config = murm.getDefaultMurmConfig();
       assert.strictEqual(config.minDiskSpaceMB, 500);
     });
   });
 
   describe('timeout safeguard (P1)', () => {
     it('T-TO-1.1: getTimeoutMs returns number', () => {
-      if (!parallel) return;
-      const timeout = parallel.getTimeoutMs();
+      if (!murm) return;
+      const timeout = murm.getTimeoutMs();
       assert.strictEqual(typeof timeout, 'number');
       assert.ok(timeout > 0);
     });
 
     it('T-TO-1.2: default timeout is 30 minutes', () => {
-      if (!parallel) return;
-      const config = parallel.getDefaultParallelConfig();
+      if (!murm) return;
+      const config = murm.getDefaultMurmConfig();
       assert.strictEqual(config.timeout, 30);
     });
 
     it('T-TO-1.3: getTimeoutMs converts minutes to milliseconds', () => {
-      if (!parallel) return;
-      const config = parallel.getDefaultParallelConfig();
-      const timeoutMs = parallel.getTimeoutMs();
+      if (!murm) return;
+      const config = murm.getDefaultMurmConfig();
+      const timeoutMs = murm.getTimeoutMs();
       assert.strictEqual(timeoutMs, config.timeout * 60 * 1000);
     });
 
     it('T-TO-1.4: withTimeout is exported', () => {
-      if (!parallel) return;
-      assert.strictEqual(typeof parallel.withTimeout, 'function');
+      if (!murm) return;
+      assert.strictEqual(typeof murm.withTimeout, 'function');
     });
 
     it('T-TO-1.5: withTimeout resolves when promise completes before timeout', async () => {
-      if (!parallel) return;
+      if (!murm) return;
       const fastPromise = Promise.resolve({ slug: 'test', success: true });
-      const result = await parallel.withTimeout(fastPromise, 5000, 'test');
+      const result = await murm.withTimeout(fastPromise, 5000, 'test');
       assert.strictEqual(result.success, true);
     });
   });
 
   describe('progress tracking (P2)', () => {
     it('T-PR-1.1: getProgressFromLog returns stage and percent', () => {
-      if (!parallel) return;
-      const result = parallel.getProgressFromLog('/nonexistent/path');
+      if (!murm) return;
+      const result = murm.getProgressFromLog('/nonexistent/path');
       assert.strictEqual(typeof result.stage, 'string');
       assert.strictEqual(typeof result.percent, 'number');
     });
 
     it('T-PR-1.2: getDetailedStatus returns object with features array', () => {
-      if (!parallel) return;
-      const result = parallel.getDetailedStatus();
+      if (!murm) return;
+      const result = murm.getDetailedStatus();
       assert.strictEqual(typeof result.active, 'boolean');
       assert.ok(Array.isArray(result.features));
     });
 
     it('T-PR-1.3: formatDetailedStatus returns string', () => {
-      if (!parallel) return;
+      if (!murm) return;
       const details = { active: false, features: [] };
-      const result = parallel.formatDetailedStatus(details);
+      const result = murm.formatDetailedStatus(details);
       assert.strictEqual(typeof result, 'string');
     });
 
     it('T-PR-1.4: progressBar generates visual bar', () => {
-      if (!parallel) return;
-      const bar = parallel.progressBar(50, 10);
+      if (!murm) return;
+      const bar = murm.progressBar(50, 10);
       assert.ok(bar.includes('['));
       assert.ok(bar.includes(']'));
-      assert.ok(bar.includes('█'));
-      assert.ok(bar.includes('░'));
+      assert.ok(bar.includes('}'));
+      assert.ok(bar.includes('\u00b7'));
     });
 
     it('T-PR-1.5: progressBar handles 0%', () => {
-      if (!parallel) return;
-      const bar = parallel.progressBar(0, 10);
-      assert.ok(bar.includes('░'.repeat(10)));
+      if (!murm) return;
+      const bar = murm.progressBar(0, 10);
+      assert.ok(bar.includes('\u00b7'.repeat(10)));
     });
 
     it('T-PR-1.6: progressBar handles 100%', () => {
-      if (!parallel) return;
-      const bar = parallel.progressBar(100, 10);
-      assert.ok(bar.includes('█'.repeat(10)));
+      if (!murm) return;
+      const bar = murm.progressBar(100, 10);
+      assert.ok(bar.includes('}'.repeat(10)));
     });
   });
 
   describe('rollback (P3)', () => {
-    it('T-RB-1.1: rollbackParallel is async function', () => {
-      if (!parallel) return;
-      assert.strictEqual(typeof parallel.rollbackParallel, 'function');
+    it('T-RB-1.1: rollbackMurm is async function', () => {
+      if (!murm) return;
+      assert.strictEqual(typeof murm.rollbackMurm, 'function');
     });
 
-    it('T-RB-1.2: rollbackParallel returns object with success property', async () => {
-      if (!parallel) return;
+    it('T-RB-1.2: rollbackMurm returns object with success property', async () => {
+      if (!murm) return;
       // Clear any existing queue first
-      parallel.saveQueue({ features: [], startedAt: null });
-      const result = await parallel.rollbackParallel({ dryRun: true });
+      murm.saveQueue({ features: [], startedAt: null });
+      const result = await murm.rollbackMurm({ dryRun: true });
       assert.strictEqual(typeof result.success, 'boolean');
     });
 
-    it('T-RB-1.3: rollbackParallel handles empty queue', async () => {
-      if (!parallel) return;
-      parallel.saveQueue({ features: [], startedAt: null });
-      const result = await parallel.rollbackParallel();
+    it('T-RB-1.3: rollbackMurm handles empty queue', async () => {
+      if (!murm) return;
+      murm.saveQueue({ features: [], startedAt: null });
+      const result = await murm.rollbackMurm();
       assert.strictEqual(result.success, true);
       assert.strictEqual(result.rolledBack, 0);
     });
@@ -624,14 +624,14 @@ describe('parallel-features', () => {
     });
 
     it('T-PB-1.1: validateFeatureSpec detects missing FEATURE_SPEC.md', () => {
-      if (!parallel) return;
-      const result = parallel.validateFeatureSpec('nonexistent-feature');
+      if (!murm) return;
+      const result = murm.validateFeatureSpec('nonexistent-feature');
       assert.strictEqual(result.valid, false);
       assert.ok(result.errors.some(e => e.includes('Missing FEATURE_SPEC.md')));
     });
 
     it('T-PB-1.2: extractFilesToModify extracts file paths from table format', () => {
-      if (!parallel) return;
+      if (!murm) return;
       const planContent = `
 ## Files to Create/Modify
 
@@ -643,42 +643,42 @@ describe('parallel-features', () => {
 
 ## Implementation Steps
 `;
-      const files = parallel.extractFilesToModify(planContent);
+      const files = murm.extractFilesToModify(planContent);
       assert.ok(files.includes('src/utils.js'));
       assert.ok(files.includes('src/index.js'));
       assert.ok(files.includes('test/utils.test.js'));
     });
 
     it('T-PB-1.3: detectFileOverlap finds files modified by multiple features', () => {
-      if (!parallel) return;
+      if (!murm) return;
       const validations = [
         { slug: 'feat-a', filesToModify: ['src/utils.js', 'src/a.js'] },
         { slug: 'feat-b', filesToModify: ['src/utils.js', 'src/b.js'] },
         { slug: 'feat-c', filesToModify: ['src/c.js'] }
       ];
-      const overlaps = parallel.detectFileOverlap(validations);
+      const overlaps = murm.detectFileOverlap(validations);
       assert.strictEqual(overlaps.length, 1);
       assert.strictEqual(overlaps[0].file, 'src/utils.js');
       assert.deepStrictEqual(overlaps[0].features, ['feat-a', 'feat-b']);
     });
 
     it('T-PB-1.4: detectFileOverlap returns empty array when no overlaps', () => {
-      if (!parallel) return;
+      if (!murm) return;
       const validations = [
         { slug: 'feat-a', filesToModify: ['src/a.js'] },
         { slug: 'feat-b', filesToModify: ['src/b.js'] }
       ];
-      const overlaps = parallel.detectFileOverlap(validations);
+      const overlaps = murm.detectFileOverlap(validations);
       assert.strictEqual(overlaps.length, 0);
     });
 
     it('T-PB-1.5: estimateScope calculates time based on stories and files', () => {
-      if (!parallel) return;
+      if (!murm) return;
       const validations = [
         { slug: 'feat-a', storyCount: 3, filesToModify: ['a.js', 'b.js'] },
         { slug: 'feat-b', storyCount: 1, filesToModify: [] }
       ];
-      const estimates = parallel.estimateScope(validations);
+      const estimates = murm.estimateScope(validations);
       assert.strictEqual(estimates.length, 2);
       // feat-a: 10 base + 3*5 stories + 2*2 files = 29
       assert.strictEqual(estimates[0].estimatedMinutes, 29);
@@ -686,10 +686,10 @@ describe('parallel-features', () => {
       assert.strictEqual(estimates[1].estimatedMinutes, 15);
     });
 
-    it('T-PB-1.6: validateParallelBatch returns comprehensive validation result', () => {
-      if (!parallel) return;
+    it('T-PB-1.6: validateMurmBatch returns comprehensive validation result', () => {
+      if (!murm) return;
       // Test with non-existent features
-      const result = parallel.validateParallelBatch(['nonexistent-a', 'nonexistent-b']);
+      const result = murm.validateMurmBatch(['nonexistent-a', 'nonexistent-b']);
       assert.strictEqual(typeof result.valid, 'boolean');
       assert.ok(Array.isArray(result.features));
       assert.ok(Array.isArray(result.fileOverlaps));
@@ -699,7 +699,7 @@ describe('parallel-features', () => {
     });
 
     it('T-PB-1.7: formatPreflightResults produces readable output', () => {
-      if (!parallel) return;
+      if (!murm) return;
       const mockResults = {
         valid: false,
         features: [
@@ -717,18 +717,65 @@ describe('parallel-features', () => {
         parallelEstimatedMinutes: 20,
         invalidFeatures: [{ slug: 'feat-b' }]
       };
-      const output = parallel.formatPreflightResults(mockResults);
+      const output = murm.formatPreflightResults(mockResults);
       assert.ok(output.includes('Pre-flight Validation'));
       assert.ok(output.includes('feat-a'));
       assert.ok(output.includes('feat-b'));
       assert.ok(output.includes('Scope Estimation'));
     });
 
-    it('T-PB-1.8: validateParallelBatch marks batch invalid when features missing specs', () => {
-      if (!parallel) return;
-      const result = parallel.validateParallelBatch(['no-spec-feature']);
+    it('T-PB-1.8: validateMurmBatch marks batch invalid when features missing specs', () => {
+      if (!murm) return;
+      const result = murm.validateMurmBatch(['no-spec-feature']);
       assert.strictEqual(result.valid, false);
       assert.ok(result.invalidFeatures.length > 0);
+    });
+  });
+
+  describe('legacy migration', () => {
+    it('T-MG-1.1: migrateFile moves old path to new path', () => {
+      if (!murm) return;
+      const oldPath = path.join(tempDir, 'old.json');
+      const newPath = path.join(tempDir, 'new.json');
+      fs.writeFileSync(oldPath, '{"migrated":true}');
+      murm.migrateFile(oldPath, newPath);
+      assert.strictEqual(fs.existsSync(oldPath), false);
+      assert.strictEqual(fs.existsSync(newPath), true);
+      assert.deepStrictEqual(JSON.parse(fs.readFileSync(newPath, 'utf8')), { migrated: true });
+    });
+
+    it('T-MG-1.2: migrateFile is a no-op when new path already exists', () => {
+      if (!murm) return;
+      const oldPath = path.join(tempDir, 'old2.json');
+      const newPath = path.join(tempDir, 'new2.json');
+      fs.writeFileSync(oldPath, '{"old":true}');
+      fs.writeFileSync(newPath, '{"new":true}');
+      murm.migrateFile(oldPath, newPath);
+      // Old file kept, new file untouched
+      assert.strictEqual(fs.existsSync(oldPath), true);
+      assert.deepStrictEqual(JSON.parse(fs.readFileSync(newPath, 'utf8')), { new: true });
+    });
+
+    it('T-MG-1.3: migrateFile is a no-op when old path does not exist', () => {
+      if (!murm) return;
+      const oldPath = path.join(tempDir, 'nonexistent.json');
+      const newPath = path.join(tempDir, 'target.json');
+      murm.migrateFile(oldPath, newPath);
+      assert.strictEqual(fs.existsSync(newPath), false);
+    });
+
+    it('T-MG-1.4: legacy path constants are exported', () => {
+      if (!murm) return;
+      assert.strictEqual(murm.LEGACY_CONFIG_FILE, '.claude/parallel-config.json');
+      assert.strictEqual(murm.LEGACY_LOCK_FILE, '.claude/parallel.lock');
+      assert.strictEqual(murm.LEGACY_QUEUE_FILE, '.claude/parallel-queue.json');
+    });
+
+    it('T-MG-1.5: readMurmConfig migrates legacy queueFile value in config', () => {
+      if (!murm) return;
+      // getDefaultMurmConfig should use the new queue path
+      const config = murm.getDefaultMurmConfig();
+      assert.strictEqual(config.queueFile, '.claude/murm-queue.json');
     });
   });
 });

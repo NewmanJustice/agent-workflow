@@ -4,15 +4,49 @@ const path = require('path');
 const { execSync, spawn } = require('child_process');
 const fs = require('fs');
 const readline = require('readline');
+const theme = require('./theme');
 
-const CONFIG_FILE = '.claude/parallel-config.json';
-const LOCK_FILE = '.claude/parallel.lock';
+const CONFIG_FILE = '.claude/murm-config.json';
+const LOCK_FILE = '.claude/murm.lock';
+const QUEUE_FILE = '.claude/murm-queue.json';
+
+// Legacy paths for migration
+const LEGACY_CONFIG_FILE = '.claude/parallel-config.json';
+const LEGACY_LOCK_FILE = '.claude/parallel.lock';
+const LEGACY_QUEUE_FILE = '.claude/parallel-queue.json';
 
 // Track running processes for abort handling
 let runningProcesses = new Map();
 let isAborting = false;
 
-function getDefaultParallelConfig() {
+/**
+ * Migrate a legacy file path to the new path.
+ * If the old file exists and the new one doesn't, rename it.
+ */
+function migrateFile(oldPath, newPath) {
+  if (fs.existsSync(oldPath) && !fs.existsSync(newPath)) {
+    const dir = path.dirname(newPath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    fs.renameSync(oldPath, newPath);
+  }
+}
+
+/**
+ * Run all legacy path migrations.
+ * Called once per process on first config/queue/lock access.
+ */
+let migrationDone = false;
+function ensureMigrated() {
+  if (migrationDone) return;
+  migrationDone = true;
+  migrateFile(LEGACY_CONFIG_FILE, CONFIG_FILE);
+  migrateFile(LEGACY_LOCK_FILE, LOCK_FILE);
+  migrateFile(LEGACY_QUEUE_FILE, QUEUE_FILE);
+}
+
+function getDefaultMurmConfig() {
   return {
     maxConcurrency: 3,
     maxFeatures: 10,
@@ -22,23 +56,29 @@ function getDefaultParallelConfig() {
     skill: '/implement-feature',
     skillFlags: '--no-commit',
     worktreeDir: '.claude/worktrees',
-    queueFile: '.claude/parallel-queue.json'
+    queueFile: QUEUE_FILE
   };
 }
 
-function readParallelConfig() {
+function readMurmConfig() {
+  ensureMigrated();
   if (!fs.existsSync(CONFIG_FILE)) {
-    return getDefaultParallelConfig();
+    return getDefaultMurmConfig();
   }
   try {
     const content = fs.readFileSync(CONFIG_FILE, 'utf8');
-    return { ...getDefaultParallelConfig(), ...JSON.parse(content) };
+    const parsed = JSON.parse(content);
+    // Migrate legacy queueFile value in config
+    if (parsed.queueFile === LEGACY_QUEUE_FILE) {
+      parsed.queueFile = QUEUE_FILE;
+    }
+    return { ...getDefaultMurmConfig(), ...parsed };
   } catch {
-    return getDefaultParallelConfig();
+    return getDefaultMurmConfig();
   }
 }
 
-function writeParallelConfig(config) {
+function writeMurmConfig(config) {
   const dir = path.dirname(CONFIG_FILE);
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
@@ -47,13 +87,11 @@ function writeParallelConfig(config) {
 }
 
 function getQueueFile() {
-  return readParallelConfig().queueFile;
+  return readMurmConfig().queueFile;
 }
 
-const QUEUE_FILE = '.claude/parallel-queue.json'; // Legacy reference
-
 function buildWorktreePath(slug, config = null) {
-  const cfg = config || readParallelConfig();
+  const cfg = config || readMurmConfig();
   return `${cfg.worktreeDir}/feat-${slug}`;
 }
 
@@ -62,7 +100,7 @@ function buildBranchName(slug) {
 }
 
 function getDefaultConfig() {
-  const cfg = readParallelConfig();
+  const cfg = readMurmConfig();
   return { maxConcurrency: cfg.maxConcurrency };
 }
 
@@ -71,7 +109,7 @@ function getQueuePath(worktreePath) {
 }
 
 function shouldCleanupWorktree(state) {
-  return state.status === 'parallel_complete' || state.status === 'aborted';
+  return state.status === 'murm_complete' || state.status === 'aborted';
 }
 
 function validatePreFlight({ isGitRepo, isDirty, gitVersion }) {
@@ -131,7 +169,7 @@ function promoteFromQueue(state) {
 }
 
 function buildPipelineCommand(slug, worktreePath, config = null) {
-  const cfg = config || readParallelConfig();
+  const cfg = config || readMurmConfig();
   const flags = cfg.skillFlags ? ` ${cfg.skillFlags}` : '';
   return `${cfg.cli} --cwd ${worktreePath} ${cfg.skill} "${slug}"${flags}`;
 }
@@ -161,12 +199,12 @@ function orderByCompletion(features) {
 }
 
 const VALID_TRANSITIONS = {
-  parallel_queued: ['worktree_created', 'aborted'],
-  worktree_created: ['parallel_running', 'parallel_failed', 'aborted'],
-  parallel_running: ['merge_pending', 'parallel_failed', 'aborted'],
-  merge_pending: ['parallel_complete', 'merge_conflict', 'aborted'],
-  parallel_failed: [],
-  parallel_complete: [],
+  murm_queued: ['worktree_created', 'aborted'],
+  worktree_created: ['murm_running', 'murm_failed', 'aborted'],
+  murm_running: ['merge_pending', 'murm_failed', 'aborted'],
+  merge_pending: ['murm_complete', 'merge_conflict', 'aborted'],
+  murm_failed: [],
+  murm_complete: [],
   merge_conflict: [],
   aborted: []
 };
@@ -183,23 +221,23 @@ function formatStatus(states) {
 }
 
 function formatFeatureStatus(state) {
-  const statusDisplay = state.status.replace('parallel_', '');
+  const statusDisplay = state.status.replace('murm_', '');
   const stage = state.stage ? ` (${state.stage})` : '';
   return `${state.slug}: ${statusDisplay}${stage}`;
 }
 
 function summarizeFinal(results) {
   return {
-    completed: results.filter(r => r.status === 'parallel_complete').length,
-    failed: results.filter(r => r.status === 'parallel_failed').length,
+    completed: results.filter(r => r.status === 'murm_complete').length,
+    failed: results.filter(r => r.status === 'murm_failed').length,
     conflicts: results.filter(r => r.status === 'merge_conflict').length
   };
 }
 
 function aggregateResults(results) {
   return {
-    completed: results.filter(r => r.status === 'parallel_complete').length,
-    failed: results.filter(r => r.status === 'parallel_failed').length,
+    completed: results.filter(r => r.status === 'murm_complete').length,
+    failed: results.filter(r => r.status === 'murm_failed').length,
     total: results.length
   };
 }
@@ -296,12 +334,12 @@ function promptConfirm(message) {
 }
 
 function buildConfirmMessage(slugs, config) {
-  const parallelCfg = readParallelConfig();
+  const murmCfg = readMurmConfig();
   const { active, queued } = splitByLimit(slugs, config.maxConcurrency);
 
   let msg = '\nThis will:\n';
-  msg += `  • Create ${slugs.length} git worktree(s) in ${parallelCfg.worktreeDir}/\n`;
-  msg += `  • Start ${active.length} parallel pipeline(s) (max concurrent: ${config.maxConcurrency})\n`;
+  msg += `  • Create ${slugs.length} git worktree(s) in ${murmCfg.worktreeDir}/\n`;
+  msg += `  • Start ${active.length} murmuration pipeline(s) (max concurrent: ${config.maxConcurrency})\n`;
   if (queued.length > 0) {
     msg += `  • Queue ${queued.length} additional feature(s)\n`;
   }
@@ -313,6 +351,7 @@ function buildConfirmMessage(slugs, config) {
 // --- Lock File ---
 
 function acquireLock(slugs) {
+  ensureMigrated();
   if (fs.existsSync(LOCK_FILE)) {
     const lock = JSON.parse(fs.readFileSync(LOCK_FILE, 'utf8'));
 
@@ -357,6 +396,7 @@ function releaseLock() {
 }
 
 function getLockInfo() {
+  ensureMigrated();
   if (!fs.existsSync(LOCK_FILE)) {
     return null;
   }
@@ -370,7 +410,7 @@ function getLockInfo() {
 // --- Feature Limit ---
 
 function validateFeatureLimit(slugs) {
-  const config = readParallelConfig();
+  const config = readMurmConfig();
   if (slugs.length > config.maxFeatures) {
     return {
       valid: false,
@@ -385,7 +425,7 @@ function validateFeatureLimit(slugs) {
 // --- Disk Space Check ---
 
 function checkDiskSpace() {
-  const config = readParallelConfig();
+  const config = readMurmConfig();
   try {
     // Get available space on current filesystem
     const output = execSync('df -m . | tail -1', { encoding: 'utf8' });
@@ -419,8 +459,8 @@ function validateDiskSpace() {
 // --- Logging ---
 
 function createLogStream(slug, config) {
-  const parallelCfg = config || readParallelConfig();
-  const worktreePath = buildWorktreePath(slug, parallelCfg);
+  const murmCfg = config || readMurmConfig();
+  const worktreePath = buildWorktreePath(slug, murmCfg);
   const logPath = path.join(worktreePath, 'pipeline.log');
 
   // Ensure directory exists
@@ -610,7 +650,7 @@ function estimateScope(featureValidations) {
   });
 }
 
-function validateParallelBatch(slugs) {
+function validateMurmBatch(slugs) {
   const featureValidations = slugs.map(validateFeatureSpec);
   const fileOverlaps = detectFileOverlap(featureValidations);
   const dependencies = detectDependencies(featureValidations);
@@ -744,7 +784,7 @@ function withTimeout(promise, timeoutMs, slug) {
 }
 
 function getTimeoutMs() {
-  const config = readParallelConfig();
+  const config = readMurmConfig();
   return config.timeout * 60 * 1000; // Convert minutes to ms
 }
 
@@ -807,29 +847,20 @@ function getDetailedStatus() {
   });
 
   return {
-    active: features.some(f => f.status === 'parallel_running'),
+    active: features.some(f => f.status === 'murm_running'),
     features
   };
 }
 
 function formatDetailedStatus(details) {
   if (!details.active && details.features.length === 0) {
-    return 'No parallel pipelines active.';
+    return 'No murmuration pipelines active.';
   }
 
-  let output = 'Parallel Pipeline Status\n\n';
+  let output = 'Murmuration Status\n\n';
 
   for (const f of details.features) {
-    const statusIcon = {
-      'parallel_queued': '⏳',
-      'worktree_created': '📁',
-      'parallel_running': '🔄',
-      'merge_pending': '🔀',
-      'parallel_complete': '✅',
-      'parallel_failed': '❌',
-      'merge_conflict': '⚠️',
-      'aborted': '🛑'
-    }[f.status] || '❓';
+    const statusIcon = theme.STATUS_ICONS[f.status] || '?';
 
     const elapsed = f.elapsedSeconds > 0
       ? ` (${Math.floor(f.elapsedSeconds / 60)}m ${f.elapsedSeconds % 60}s)`
@@ -837,8 +868,8 @@ function formatDetailedStatus(details) {
 
     output += `${statusIcon} ${f.slug}${elapsed}\n`;
 
-    if (f.status === 'parallel_running') {
-      const bar = progressBar(f.percent);
+    if (f.status === 'murm_running') {
+      const bar = theme.progressBar(f.percent);
       output += `   ${bar} ${f.percent}% - ${f.stage}\n`;
     }
   }
@@ -847,9 +878,7 @@ function formatDetailedStatus(details) {
 }
 
 function progressBar(percent, width = 20) {
-  const filled = Math.round((percent / 100) * width);
-  const empty = width - filled;
-  return '[' + '█'.repeat(filled) + '░'.repeat(empty) + ']';
+  return theme.progressBar(percent, width);
 }
 
 // --- Abort Handling ---
@@ -859,7 +888,7 @@ function setupAbortHandler(queue) {
     if (isAborting) return;
     isAborting = true;
 
-    console.log('\n\nReceived interrupt signal. Stopping pipelines...\n');
+    console.log(`\n\n${theme.MESSAGES.flockScattering}\n`);
 
     // Kill all running processes
     for (const [slug, procInfo] of runningProcesses) {
@@ -874,7 +903,7 @@ function setupAbortHandler(queue) {
     // Update queue state
     if (queue && queue.features) {
       queue.features.forEach(f => {
-        if (f.status === 'parallel_running' || f.status === 'worktree_created') {
+        if (f.status === 'murm_running' || f.status === 'worktree_created') {
           f.status = 'aborted';
         }
       });
@@ -884,7 +913,7 @@ function setupAbortHandler(queue) {
     releaseLock();
 
     console.log('\nAborted. Worktrees preserved for debugging.');
-    console.log("Run 'murmur8 parallel cleanup' to remove.\n");
+    console.log("Run 'murmur8 murm cleanup' to remove.\n");
 
     process.exit(130); // Standard exit code for Ctrl+C
   };
@@ -895,16 +924,16 @@ function setupAbortHandler(queue) {
   return handler;
 }
 
-async function abortParallel(options = {}) {
+async function abortMurm(options = {}) {
   const lock = getLockInfo();
   const queue = loadQueue();
 
   if (!lock && (!queue.features || queue.features.length === 0)) {
-    console.log('No parallel pipelines are currently running.');
+    console.log('No murmuration pipelines are currently running.');
     return { success: true };
   }
 
-  console.log('Stopping parallel pipelines...\n');
+  console.log('Stopping murmuration pipelines...\n');
 
   // Try to kill the main process if we have lock info
   if (lock && lock.pid !== process.pid) {
@@ -920,7 +949,7 @@ async function abortParallel(options = {}) {
   let abortedCount = 0;
   if (queue.features) {
     queue.features.forEach(f => {
-      if (f.status === 'parallel_running' || f.status === 'worktree_created' || f.status === 'parallel_queued') {
+      if (f.status === 'murm_running' || f.status === 'worktree_created' || f.status === 'murm_queued') {
         f.status = 'aborted';
         abortedCount++;
         console.log(`${f.slug}: Marked as aborted`);
@@ -945,7 +974,7 @@ async function abortParallel(options = {}) {
         worktrees.forEach(w => console.log(`  • ${w}`));
       }
     }
-    console.log("\nTo clean up: murmur8 parallel cleanup");
+    console.log("\nTo clean up: murmur8 murm cleanup");
   }
 
   return { success: true, abortedCount };
@@ -970,7 +999,7 @@ function saveQueue(queue) {
 // --- Pipeline Execution ---
 
 function runPipelineInWorktree(slug, worktreePath, config = null, options = {}) {
-  const cfg = config || readParallelConfig();
+  const cfg = config || readMurmConfig();
   const cliParts = cfg.cli.split(' ');
   const skillParts = cfg.skill.split(' ');
   const flagParts = cfg.skillFlags ? cfg.skillFlags.split(' ') : [];
@@ -1027,7 +1056,7 @@ function runPipelineInWorktree(slug, worktreePath, config = null, options = {}) 
 // --- Main Orchestration ---
 
 function dryRun(slugs, config, baseBranch, gitStatus, validation, batchValidation = null) {
-  const parallelCfg = readParallelConfig();
+  const murmCfg = readMurmConfig();
   const { active, queued } = splitByLimit(slugs, config.maxConcurrency);
 
   console.log('\n=== DRY RUN MODE ===\n');
@@ -1042,28 +1071,28 @@ function dryRun(slugs, config, baseBranch, gitStatus, validation, batchValidatio
     validation.errors.forEach(e => console.log(`     - ${e}`));
   }
 
-  // Show batch validation results (already printed in runParallel if issues found)
+  // Show batch validation results (already printed in runMurm if issues found)
   if (batchValidation && !batchValidation.valid) {
     console.log(`\n⚠️  WARNING: Feature validation failed. Real execution would abort.`);
   }
 
   console.log(`\nConfiguration:`);
   console.log(`  Max concurrency: ${config.maxConcurrency}`);
-  console.log(`  Max features: ${parallelCfg.maxFeatures}`);
-  console.log(`  Timeout: ${parallelCfg.timeout} min per pipeline`);
-  console.log(`  Min disk space: ${parallelCfg.minDiskSpaceMB} MB`);
-  console.log(`  CLI: ${parallelCfg.cli}`);
-  console.log(`  Skill: ${parallelCfg.skill}`);
-  console.log(`  Flags: ${parallelCfg.skillFlags || '(none)'}`);
-  console.log(`  Worktree dir: ${parallelCfg.worktreeDir}`);
+  console.log(`  Max features: ${murmCfg.maxFeatures}`);
+  console.log(`  Timeout: ${murmCfg.timeout} min per pipeline`);
+  console.log(`  Min disk space: ${murmCfg.minDiskSpaceMB} MB`);
+  console.log(`  CLI: ${murmCfg.cli}`);
+  console.log(`  Skill: ${murmCfg.skill}`);
+  console.log(`  Flags: ${murmCfg.skillFlags || '(none)'}`);
+  console.log(`  Worktree dir: ${murmCfg.worktreeDir}`);
   console.log(`  Total features: ${slugs.length}`);
 
   console.log(`\nInitial batch (${active.length} features):`);
   active.forEach(slug => {
     console.log(`  → ${slug}`);
-    console.log(`      Worktree: ${buildWorktreePath(slug, parallelCfg)}`);
+    console.log(`      Worktree: ${buildWorktreePath(slug, murmCfg)}`);
     console.log(`      Branch:   ${buildBranchName(slug)}`);
-    console.log(`      Command:  ${buildPipelineCommand(slug, buildWorktreePath(slug, parallelCfg), parallelCfg)}`);
+    console.log(`      Command:  ${buildPipelineCommand(slug, buildWorktreePath(slug, murmCfg), murmCfg)}`);
   });
 
   if (queued.length > 0) {
@@ -1075,7 +1104,7 @@ function dryRun(slugs, config, baseBranch, gitStatus, validation, batchValidatio
 
   console.log(`\nExecution plan:`);
   console.log(`  1. Create ${active.length} git worktrees`);
-  console.log(`  2. Spawn ${active.length} parallel pipeline processes`);
+  console.log(`  2. Spawn ${active.length} murmuration pipeline processes`);
   console.log(`  3. As each completes: merge to ${baseBranch}, cleanup worktree`);
   if (queued.length > 0) {
     console.log(`  4. Promote queued features as slots free`);
@@ -1088,7 +1117,7 @@ function dryRun(slugs, config, baseBranch, gitStatus, validation, batchValidatio
   return { success: true, dryRun: true };
 }
 
-async function runParallel(slugs, options = {}) {
+async function runMurm(slugs, options = {}) {
   const config = { ...getDefaultConfig(), ...options };
   const baseBranch = getCurrentBranch();
 
@@ -1099,7 +1128,7 @@ async function runParallel(slugs, options = {}) {
   // Batch validation (unless skipped)
   let batchValidation = null;
   if (!options.skipPreflight) {
-    batchValidation = validateParallelBatch(slugs);
+    batchValidation = validateMurmBatch(slugs);
 
     // Show pre-flight results in dry-run or if there are issues
     if (options.dryRun || !batchValidation.valid || batchValidation.fileOverlaps.length > 0 || batchValidation.dependencies.length > 0) {
@@ -1141,7 +1170,7 @@ async function runParallel(slugs, options = {}) {
   const limitCheck = validateFeatureLimit(slugs);
   if (!limitCheck.valid) {
     console.error(`\nError: ${limitCheck.error}`);
-    console.error(`\nTo increase limit: murmur8 parallel-config set maxFeatures <N>\n`);
+    console.error(`\nTo increase limit: murmur8 murm-config set maxFeatures <N>\n`);
     return { success: false, error: 'feature-limit-exceeded' };
   }
 
@@ -1161,14 +1190,14 @@ async function runParallel(slugs, options = {}) {
     const lockResult = acquireLock(slugs);
     if (!lockResult.acquired) {
       const lock = lockResult.existingLock;
-      console.error('\nError: Another parallel execution is in progress');
+      console.error('\nError: Another murmuration execution is in progress');
       console.error(`  PID: ${lock.pid}`);
       console.error(`  Started: ${lock.startedAt}`);
       console.error(`  Features: ${lock.features.join(', ')}`);
       console.error('\nOptions:');
       console.error('  • Wait for it to complete');
-      console.error('  • Run: murmur8 parallel status');
-      console.error('  • Force override: murmur8 parallel ... --force\n');
+      console.error('  • Run: murmur8 murm status');
+      console.error('  • Force override: murmur8 murm ... --force\n');
       return { success: false, error: 'locked' };
     }
   } else {
@@ -1191,7 +1220,9 @@ async function runParallel(slugs, options = {}) {
     }
   }
 
-  console.log(`\nStarting parallel pipelines for ${slugs.length} features`);
+  const useColor = process.stdout.isTTY || false;
+  console.log(theme.banner(useColor));
+  console.log(theme.MESSAGES.startingFlock(slugs.length));
   console.log(`Base branch: ${baseBranch}`);
   console.log(`Max concurrency: ${config.maxConcurrency}\n`);
 
@@ -1199,7 +1230,7 @@ async function runParallel(slugs, options = {}) {
   const queue = {
     features: slugs.map(slug => ({
       slug,
-      status: 'parallel_queued',
+      status: 'murm_queued',
       worktreePath: null,
       branchName: null,
       startedAt: null,
@@ -1246,30 +1277,30 @@ async function runParallel(slugs, options = {}) {
 
       if (result.success) {
         feature.status = 'merge_pending';
-        console.log(`[${timestamp}] ${result.slug}: Completed ✓`);
+        console.log(`[${timestamp}] ${result.slug}: ${theme.MESSAGES.landed} \u2713`);
 
         // Attempt merge
         const mergeResult = mergeBranch(result.slug);
         if (mergeResult.success) {
-          feature.status = 'parallel_complete';
-          console.log(`[${timestamp}] ${result.slug}: Merged to ${baseBranch} ✓`);
+          feature.status = 'murm_complete';
+          console.log(`[${timestamp}] ${result.slug}: ${theme.MESSAGES.mergedAndLanded} \u2713`);
           removeWorktree(result.slug);
         } else if (mergeResult.conflict) {
           feature.status = 'merge_conflict';
           feature.conflictDetails = mergeResult.output;
-          console.log(`[${timestamp}] ${result.slug}: Merge conflict ⚠ (branch preserved)`);
+          console.log(`[${timestamp}] ${result.slug}: ${theme.MESSAGES.turbulence} \u26a0 (branch preserved)`);
           execSync('git merge --abort', { stdio: 'pipe' });
         } else {
-          feature.status = 'parallel_failed';
-          console.log(`[${timestamp}] ${result.slug}: Merge failed ✗`);
+          feature.status = 'murm_failed';
+          console.log(`[${timestamp}] ${result.slug}: ${theme.MESSAGES.lostFormation} \u2717`);
         }
       } else {
-        feature.status = 'parallel_failed';
+        feature.status = 'murm_failed';
         if (result.timedOut) {
-          console.log(`[${timestamp}] ${result.slug}: Timed out ⏱ (see log: ${feature.logPath})`);
+          console.log(`[${timestamp}] ${result.slug}: ${theme.MESSAGES.timedOut} \u23f1 (see log: ${feature.logPath})`);
           feature.timedOut = true;
         } else {
-          console.log(`[${timestamp}] ${result.slug}: Failed ✗ (see log: ${feature.logPath})`);
+          console.log(`[${timestamp}] ${result.slug}: ${theme.MESSAGES.lostFormation} \u2717 (see log: ${feature.logPath})`);
         }
         // Preserve worktree for debugging
       }
@@ -1287,22 +1318,22 @@ async function runParallel(slugs, options = {}) {
 
   // Final summary
   const summary = summarizeFinal(queue.features);
-  console.log('\n--- Parallel Execution Complete ---');
+  console.log(`\n${theme.MESSAGES.murmurationComplete}`);
   console.log(`Completed: ${summary.completed}`);
   console.log(`Failed: ${summary.failed}`);
   console.log(`Conflicts: ${summary.conflicts}`);
 
   if (summary.conflicts > 0) {
-    console.log('\nFeatures with conflicts (branches preserved):');
+    console.log(`\n${theme.MESSAGES.conflictsHeader}`);
     queue.features
       .filter(f => f.status === 'merge_conflict')
       .forEach(f => console.log(`  - ${f.branchName}`));
   }
 
   if (summary.failed > 0) {
-    console.log('\nFailed features (worktrees preserved for debugging):');
+    console.log(`\n${theme.MESSAGES.failuresHeader}`);
     queue.features
-      .filter(f => f.status === 'parallel_failed')
+      .filter(f => f.status === 'murm_failed')
       .forEach(f => {
         console.log(`  - ${f.worktreePath}`);
         if (f.logPath) {
@@ -1320,9 +1351,9 @@ async function runParallel(slugs, options = {}) {
 
 async function startFeature(slug, queue, running, options = {}) {
   const feature = queue.features.find(f => f.slug === slug);
-  const parallelCfg = readParallelConfig();
+  const murmCfg = readMurmConfig();
 
-  console.log(`[${new Date().toISOString().slice(11, 19)}] ${slug}: Creating worktree...`);
+  console.log(`[${new Date().toISOString().slice(11, 19)}] ${slug}: ${theme.MESSAGES.takingFlight}`);
   const { worktreePath, branchName } = createWorktree(slug);
 
   feature.worktreePath = worktreePath;
@@ -1338,27 +1369,27 @@ async function startFeature(slug, queue, running, options = {}) {
   const timeoutMs = getTimeoutMs();
   const timeoutMin = timeoutMs / 60000;
   console.log(`[${new Date().toISOString().slice(11, 19)}] ${slug}: Started (log: ${feature.logPath}, timeout: ${timeoutMin}min)`);
-  feature.status = 'parallel_running';
+  feature.status = 'murm_running';
   saveQueue(queue);
 
-  const pipelinePromise = runPipelineInWorktree(slug, worktreePath, parallelCfg, options);
+  const pipelinePromise = runPipelineInWorktree(slug, worktreePath, murmCfg, options);
   const promise = withTimeout(pipelinePromise, timeoutMs, slug);
   running.set(slug, promise);
 }
 
 // --- Rollback ---
 
-async function rollbackParallel(options = {}) {
+async function rollbackMurm(options = {}) {
   const queue = loadQueue();
 
   if (!queue.features || queue.features.length === 0) {
-    console.log('No parallel run to rollback.');
+    console.log('No murmuration run to rollback.');
     return { success: true, rolledBack: 0 };
   }
 
-  const completedFeatures = queue.features.filter(f => f.status === 'parallel_complete');
+  const completedFeatures = queue.features.filter(f => f.status === 'murm_complete');
   const failedFeatures = queue.features.filter(f =>
-    f.status === 'parallel_failed' || f.status === 'merge_conflict'
+    f.status === 'murm_failed' || f.status === 'merge_conflict'
   );
 
   if (completedFeatures.length === 0 && failedFeatures.length === 0) {
@@ -1366,7 +1397,7 @@ async function rollbackParallel(options = {}) {
     return { success: true, rolledBack: 0 };
   }
 
-  console.log('\nParallel Run Rollback\n');
+  console.log('\nMurmuration Rollback\n');
 
   if (options.dryRun) {
     console.log('DRY RUN - No changes will be made\n');
@@ -1389,7 +1420,7 @@ async function rollbackParallel(options = {}) {
         if (logOutput) {
           const commitHash = logOutput.split(' ')[0];
           execSync(`git revert --no-commit ${commitHash}`, { stdio: 'pipe' });
-          execSync(`git commit -m "Revert: ${f.slug} (parallel rollback)"`, { stdio: 'pipe' });
+          execSync(`git commit -m "Revert: ${f.slug} (murmuration rollback)"`, { stdio: 'pipe' });
           console.log(`  ✓ Reverted commit ${commitHash}`);
           rolledBack++;
         } else {
@@ -1464,9 +1495,15 @@ module.exports = {
   // Configuration
   CONFIG_FILE,
   LOCK_FILE,
-  getDefaultParallelConfig,
-  readParallelConfig,
-  writeParallelConfig,
+  QUEUE_FILE,
+  LEGACY_CONFIG_FILE,
+  LEGACY_LOCK_FILE,
+  LEGACY_QUEUE_FILE,
+  migrateFile,
+  ensureMigrated,
+  getDefaultMurmConfig,
+  readMurmConfig,
+  writeMurmConfig,
   getQueueFile,
   // Utility functions
   buildWorktreePath,
@@ -1510,7 +1547,7 @@ module.exports = {
   detectFileOverlap,
   detectDependencies,
   estimateScope,
-  validateParallelBatch,
+  validateMurmBatch,
   formatPreflightResults,
   // Timeout
   withTimeout,
@@ -1521,10 +1558,10 @@ module.exports = {
   formatDetailedStatus,
   progressBar,
   // Abort handling
-  abortParallel,
+  abortMurm,
   setupAbortHandler,
   // Rollback
-  rollbackParallel,
+  rollbackMurm,
   // Git operations
   checkGitStatus,
   createWorktree,
@@ -1534,11 +1571,10 @@ module.exports = {
   // Queue management
   loadQueue,
   saveQueue,
-  QUEUE_FILE,
   // Execution
   dryRun,
   runPipelineInWorktree,
-  runParallel,
+  runMurm,
   startFeature,
   cleanupWorktrees
 };

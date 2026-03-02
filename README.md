@@ -4,6 +4,26 @@ A multi-agent workflow framework for automated feature development. Like a murmu
 
 Four specialized AI agents collaborate in sequence to take features from specification to implementation, with built-in feedback loops and self-improvement capabilities.
 
+## Upgrading to v4.0
+
+v4.0 completes the murmuration theming by renaming all parallel internals. Existing users should be aware of the following breaking changes.
+
+### Breaking changes
+
+- **Source file renamed**: `src/parallel.js` → `src/murm.js` — update any direct `require()` / `import` references
+- **Exported functions renamed**: `runParallel` → `runMurm`, `abortParallel` → `abortMurm`, `rollbackParallel` → `rollbackMurm`, `readParallelConfig` → `readMurmConfig`, `writeParallelConfig` → `writeMurmConfig`, `getDefaultParallelConfig` → `getDefaultMurmConfig`, `validateParallelBatch` → `validateMurmBatch`
+- **Status strings renamed**: `parallel_queued` → `murm_queued`, `parallel_running` → `murm_running`, `parallel_failed` → `murm_failed`, `parallel_complete` → `murm_complete` — update any code that matches on these values
+- **On-disk paths renamed**: `.claude/parallel-config.json` → `.claude/murm-config.json`, `.claude/parallel-queue.json` → `.claude/murm-queue.json`, `.claude/parallel.lock` → `.claude/murm.lock`
+- **CLI command renamed**: `parallel-config` → `murm-config`
+
+### Automatic migration
+
+Legacy on-disk files (`.claude/parallel-config.json`, `.claude/parallel-queue.json`, `.claude/parallel.lock`) are **automatically migrated** to the new paths on first access. No manual action is needed for existing configs.
+
+### Backward-compatible aliases
+
+The CLI commands `parallel`, `murmuration`, and `parallel-config` continue to work as aliases for `murm` and `murm-config` respectively.
+
 ## Agents
 
 | Agent | Role |
@@ -83,16 +103,16 @@ This updates `.blueprint/agents/`, `.blueprint/templates/`, `.blueprint/ways_of_
 | `npx murmur8 insights --bottlenecks` | View bottleneck analysis |
 | `npx murmur8 insights --failures` | View failure pattern analysis |
 
-### Parallel Execution
+### Murmuration (Parallel Execution)
 
 | Command | Description |
 |---------|-------------|
-| `npx murmur8 parallel <slugs...>` | Run multiple features in parallel |
-| `npx murmur8 parallel <slugs...> --dry-run` | Preview execution plan |
-| `npx murmur8 parallel status` | Show status of running pipelines |
-| `npx murmur8 parallel cleanup` | Remove completed worktrees |
-| `npx murmur8 parallel-config` | View parallel configuration |
-| `npx murmur8 parallel-config set <key> <value>` | Modify parallel settings |
+| `npx murmur8 murm <slugs...>` | Run multiple features in parallel |
+| `npx murmur8 murm <slugs...> --dry-run` | Preview execution plan |
+| `npx murmur8 murm status` | Show status of running pipelines |
+| `npx murmur8 murm cleanup` | Remove completed worktrees |
+| `npx murmur8 murm-config` | View murmuration configuration |
+| `npx murmur8 murm-config set <key> <value>` | Modify murmuration settings |
 
 ### Configuration
 
@@ -106,8 +126,8 @@ This updates `.blueprint/agents/`, `.blueprint/templates/`, `.blueprint/ways_of_
 | `npx murmur8 retry-config reset` | Reset to defaults |
 | `npx murmur8 feedback-config` | View feedback thresholds |
 | `npx murmur8 feedback-config set <key> <value>` | Modify feedback settings |
-| `npx murmur8 parallel-config` | View parallel pipeline configuration |
-| `npx murmur8 parallel-config set <key> <value>` | Modify parallel settings |
+| `npx murmur8 murm-config` | View murmuration pipeline configuration |
+| `npx murmur8 murm-config set <key> <value>` | Modify murmuration settings |
 
 ## Usage
 
@@ -227,7 +247,7 @@ murmur8 includes these built-in modules for observability and self-improvement:
 | **handoff** | Structured summaries between agents for token efficiency |
 | **business-context** | Lazy loading of business context based on feature needs |
 | **tools** | Tool schemas and validation for Claude native features |
-| **parallel** | Parallel pipeline execution using git worktrees |
+| **murm** | Murmuration pipeline execution using git worktrees |
 | **stack** | Configurable tech stack detection and configuration |
 
 ### How They Work Together
@@ -290,8 +310,8 @@ your-project/
 │   ├── pipeline-history.json      # Execution history (gitignored)
 │   ├── retry-config.json          # Retry configuration (gitignored)
 │   ├── feedback-config.json       # Feedback thresholds (gitignored)
-│   ├── parallel-config.json       # Parallel execution config (gitignored)
-│   ├── parallel-queue.json        # Parallel pipeline state (gitignored)
+│   ├── murm-config.json            # Murmuration execution config (gitignored)
+│   ├── murm-queue.json             # Murmuration pipeline state (gitignored)
 │   ├── stack-config.json          # Tech stack configuration (gitignored)
 │   └── implement-queue.json       # Pipeline queue state (gitignored)
 └── test/
@@ -359,14 +379,14 @@ Version 2.7 introduces several optimizations to reduce token usage:
 
 **Total estimated savings: 10,000+ tokens per pipeline run** (more for technical features)
 
-## Parallel Execution with Git Worktrees
+## Murmuration
 
 Run multiple feature pipelines simultaneously using git worktrees for isolation. Each feature gets its own worktree and branch, allowing true parallel development without conflicts.
 
 ### How It Works
 
 ```
-murmur8 parallel user-auth dashboard notifications
+murmur8 murm <slug-a> <slug-b> <slug-c>
                     │
                     ▼
     ┌───────────────────────────────────────┐
@@ -384,19 +404,19 @@ murmur8 parallel user-auth dashboard notifications
     ┌───────────────────────────────────────┐
     │  Create Isolated Worktrees            │
     │                                       │
-    │  .claude/worktrees/feat-user-auth/    │
-    │       └─ branch: feature/user-auth    │
+    │  .claude/worktrees/feat-<slug-a>/     │
+    │       └─ branch: feature/<slug-a>     │
     │                                       │
-    │  .claude/worktrees/feat-dashboard/    │
-    │       └─ branch: feature/dashboard    │
+    │  .claude/worktrees/feat-<slug-b>/     │
+    │       └─ branch: feature/<slug-b>     │
     │                                       │
-    │  .claude/worktrees/feat-notifications/│
-    │       └─ branch: feature/notifications│
+    │  .claude/worktrees/feat-<slug-c>/     │
+    │       └─ branch: feature/<slug-c>     │
     └───────────────────────────────────────┘
                     │
                     ▼
     ┌───────────────────────────────────────┐
-    │  Spawn Parallel Pipelines             │
+    │  Spawn Pipelines                      │
     │  (max 3 concurrent by default)        │
     │                                       │
     │  Each runs: Alex → Nigel → Codey      │
@@ -416,22 +436,22 @@ murmur8 parallel user-auth dashboard notifications
 
 ```bash
 # Run 3 features in parallel (default concurrency)
-npx murmur8 parallel user-auth dashboard notifications
+npx murmur8 murm <slug-a> <slug-b> <slug-c>
 
 # Preview what would happen without executing
-npx murmur8 parallel user-auth dashboard --dry-run
+npx murmur8 murm <slug-a> <slug-b> --dry-run
 
 # Limit concurrent pipelines
-npx murmur8 parallel feat-a feat-b feat-c feat-d --max-concurrency=2
+npx murmur8 murm <slug-a> <slug-b> <slug-c> <slug-d> --max-concurrency=2
 
 # Check status of running pipelines
-npx murmur8 parallel status
+npx murmur8 murm status
 
 # Skip pre-flight feature validation
-npx murmur8 parallel user-auth dashboard --skip-preflight
+npx murmur8 murm <slug-a> <slug-b> --skip-preflight
 
 # Clean up completed/aborted worktrees
-npx murmur8 parallel cleanup
+npx murmur8 murm cleanup
 ```
 
 ### Pre-flight Batch Validation (v2.8)
@@ -439,7 +459,7 @@ npx murmur8 parallel cleanup
 Before parallel execution, the system validates the batch to prevent wasted resources:
 
 ```
-$ npx murmur8 parallel feat-a feat-b feat-c --dry-run
+$ npx murmur8 murm feat-a feat-b feat-c --dry-run
 
 Pre-flight Validation
 =====================
@@ -484,11 +504,11 @@ Suggested commands:
 
 ### Configuration
 
-The parallel module is **CLI-agnostic** — configure it to work with different AI coding tools:
+The murmuration module is **CLI-agnostic** — configure it to work with different AI coding tools:
 
 ```bash
 # View current configuration
-npx murmur8 parallel-config
+npx murmur8 murm-config
 
 # Output:
 #   cli:            npx claude
@@ -496,7 +516,7 @@ npx murmur8 parallel-config
 #   skillFlags:     --no-commit
 #   worktreeDir:    .claude/worktrees
 #   maxConcurrency: 3
-#   queueFile:      .claude/parallel-queue.json
+#   queueFile:      .claude/murm-queue.json
 ```
 
 #### Configuration Options
@@ -511,31 +531,31 @@ npx murmur8 parallel-config
 | `maxFeatures` | `10` | Maximum features per batch |
 | `timeout` | `30` | Timeout per pipeline (minutes) |
 | `minDiskSpaceMB` | `500` | Minimum disk space warning threshold |
-| `queueFile` | `.claude/parallel-queue.json` | State persistence file |
+| `queueFile` | `.claude/murm-queue.json` | State persistence file |
 
 #### Examples for Different CLIs
 
 ```bash
 # Claude Code (default)
-npx murmur8 parallel-config set cli "npx claude"
-npx murmur8 parallel-config set skill "/implement-feature"
+npx murmur8 murm-config set cli "npx claude"
+npx murmur8 murm-config set skill "/implement-feature"
 
 # Cursor
-npx murmur8 parallel-config set cli "cursor"
-npx murmur8 parallel-config set skill "composer"
-npx murmur8 parallel-config set skillFlags ""
+npx murmur8 murm-config set cli "cursor"
+npx murmur8 murm-config set skill "composer"
+npx murmur8 murm-config set skillFlags ""
 
 # Aider
-npx murmur8 parallel-config set cli "aider"
-npx murmur8 parallel-config set skill "--message"
-npx murmur8 parallel-config set skillFlags "implement feature:"
+npx murmur8 murm-config set cli "aider"
+npx murmur8 murm-config set skill "--message"
+npx murmur8 murm-config set skillFlags "implement feature:"
 
 # Custom agent script
-npx murmur8 parallel-config set cli "./my-agent.sh"
-npx murmur8 parallel-config set skill "run"
+npx murmur8 murm-config set cli "./my-agent.sh"
+npx murmur8 murm-config set skill "run"
 
 # Reset to defaults
-npx murmur8 parallel-config reset
+npx murmur8 murm-config reset
 ```
 
 ### State Management
@@ -543,10 +563,10 @@ npx murmur8 parallel-config reset
 Each feature progresses through these states:
 
 ```
-parallel_queued → worktree_created → parallel_running → merge_pending → parallel_complete
-                                           │                  │
-                                           ▼                  ▼
-                                    parallel_failed    merge_conflict
+murm_queued → worktree_created → murm_running → merge_pending → murm_complete
+                                      │                  │
+                                      ▼                  ▼
+                               murm_failed        merge_conflict
 ```
 
 - **Successful features**: Merged to main, worktree cleaned up

@@ -35,24 +35,24 @@ node bin/cli.js insights --feedback # Feedback correlation
 # Configuration
 node bin/cli.js retry-config        # View retry settings
 node bin/cli.js feedback-config     # View feedback thresholds
-node bin/cli.js parallel-config     # View parallel settings
+node bin/cli.js murm-config          # View murmuration settings (alias: parallel-config)
 node bin/cli.js stack-config        # View tech stack settings
 node bin/cli.js stack-config set language Python  # Set a value
 node bin/cli.js stack-config reset  # Reset to defaults
 
-# Parallel execution
-node bin/cli.js parallel feat-a feat-b     # Run multiple features in parallel
-node bin/cli.js parallel feat-a --dry-run  # Preview execution plan
-node bin/cli.js parallel feat-a --yes      # Skip confirmation prompt
-node bin/cli.js parallel feat-a --verbose  # Stream output to console
-node bin/cli.js parallel feat-a --skip-preflight  # Skip validation
-node bin/cli.js parallel status            # Show pipeline status
-node bin/cli.js parallel status --detailed # Show progress bars
-node bin/cli.js parallel abort             # Stop running pipelines
-node bin/cli.js parallel abort --cleanup   # Stop and remove worktrees
-node bin/cli.js parallel rollback          # Undo completed merges
-node bin/cli.js parallel rollback --dry-run  # Preview rollback
-node bin/cli.js parallel cleanup           # Remove completed worktrees
+# Murmuration (parallel execution) — also available as: parallel, murmuration
+node bin/cli.js murm feat-a feat-b     # Run multiple features in parallel
+node bin/cli.js murm feat-a --dry-run  # Preview execution plan
+node bin/cli.js murm feat-a --yes      # Skip confirmation prompt
+node bin/cli.js murm feat-a --verbose  # Stream output to console
+node bin/cli.js murm feat-a --skip-preflight  # Skip validation
+node bin/cli.js murm status            # Show pipeline status
+node bin/cli.js murm status --detailed # Show progress bars
+node bin/cli.js murm abort             # Stop running pipelines
+node bin/cli.js murm abort --cleanup   # Stop and remove worktrees
+node bin/cli.js murm rollback          # Undo completed merges
+node bin/cli.js murm rollback --dry-run  # Preview rollback
+node bin/cli.js murm cleanup           # Remove completed worktrees
 ```
 
 ## Architecture
@@ -83,7 +83,8 @@ murmur8 is a multi-agent workflow framework that coordinates four AI agents to a
 - `src/classifier.js` - Smart routing: classifies features as technical or user-facing
 - `src/handoff.js` - Structured summaries between agents for token efficiency
 - `src/business-context.js` - Lazy loading of business context based on feature needs
-- `src/parallel.js` - Parallel pipeline execution using git worktrees
+- `src/theme.js` - Murmuration visual theming (banner, glyphs, status icons, progress bar, colorize)
+- `src/murm.js` - Murmuration pipeline execution using git worktrees
 - `src/interactive.js` - Interactive mode for spec creation (system spec or feature spec)
 - `src/stack.js` - Configurable tech stack detection and configuration (auto-detects from package.json, pyproject.toml, go.mod, etc.)
 - `src/tools/` - Tool schemas, validation, and prompts for Claude native features
@@ -120,14 +121,16 @@ Invocation options:
 
 Queue state is persisted to `.claude/implement-queue.json` for recovery on failure. The skill reads the queue on invocation and resumes from `current.stage`.
 
-### Parallel Execution
+### Murmuration (Parallel Execution)
 
 Run multiple features simultaneously using git worktrees for isolation:
 
 ```bash
-npx murmur8 parallel user-auth dashboard notifications --dry-run  # Preview plan
-npx murmur8 parallel user-auth dashboard notifications            # Execute
+npx murmur8 murm <slug-a> <slug-b> <slug-c> --dry-run  # Preview plan
+npx murmur8 murm <slug-a> <slug-b> <slug-c>            # Execute
 ```
+
+Aliases: `parallel`, `murmuration` (all point to the same handler)
 
 Each feature gets an isolated worktree in `.claude/worktrees/feat-{slug}/`. Successful features auto-merge; conflicts are preserved for manual resolution. Requires Git 2.5+ and clean working tree.
 
@@ -135,7 +138,7 @@ Each feature gets an isolated worktree in `.claude/worktrees/feat-{slug}/`. Succ
 
 - User content directories (`features/`, `system_specification/`) are preserved during `update`
 - Framework directories (`agents/`, `templates/`, `ways_of_working/`) are replaced during `update`
-- State files are gitignored: `implement-queue.json`, `pipeline-history.json`, `retry-config.json`, `feedback-config.json`, `parallel-config.json`, `parallel-queue.json`, `stack-config.json`
+- State files are gitignored: `implement-queue.json`, `pipeline-history.json`, `retry-config.json`, `feedback-config.json`, `murm-config.json`, `murm-queue.json`, `stack-config.json`
 - Test files follow `test/feature_{slug}.test.js` naming convention
 
 ## Token Limit Handling
