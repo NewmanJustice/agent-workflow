@@ -24,6 +24,7 @@ description: Run the Alex → Cass → Nigel → Codey pipeline using Task tool 
 | `{HANDOFF_ALEX}` | `{FEAT_DIR}/handoff-alex.md` |
 | `{HANDOFF_CASS}` | `{FEAT_DIR}/handoff-cass.md` |
 | `{HANDOFF_NIGEL}` | `{FEAT_DIR}/handoff-nigel.md` |
+| `{BACKLOG}` | `.blueprint/features/BACKLOG.md` |
 
 ## Multi-Feature Paths (Murmuration Mode)
 
@@ -381,6 +382,26 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 - Record: `{ slug, status: "conflict", branch: "feature/{slug}" }`
 - Preserve worktree for manual resolution
 - Continue merging other features
+
+### Remove Merged Features from Backlog
+
+After all merges complete, update `{BACKLOG}` to remove successfully merged features:
+
+1. Read `.blueprint/features/BACKLOG.md`
+2. For each merged slug, remove its row from the table
+3. Remove any corresponding Details sections
+4. Write the updated backlog
+5. Commit the backlog update:
+   ```bash
+   git add .blueprint/features/BACKLOG.md
+   git commit -m "chore: remove completed features from backlog
+
+   Removed: {list of merged slugs}
+
+   Co-Authored-By: Claude <noreply@anthropic.com>"
+   ```
+
+**If backlog doesn't exist:** Skip silently.
 
 ---
 
@@ -925,7 +946,7 @@ For detailed guidance, see: .blueprint/agents/AGENT_DEVELOPER_CODEY.md
 
 ---
 
-## Step 11: Auto-commit
+## Step 11: Auto-commit & Backlog Cleanup
 
 If not `--no-commit`:
 
@@ -947,6 +968,34 @@ Artifacts:
 
 Co-Authored-By: Claude <noreply@anthropic.com>
 ```
+
+### Remove from Backlog
+
+After successful commit, remove the completed feature from `{BACKLOG}`:
+
+1. Read `.blueprint/features/BACKLOG.md`
+2. Find the row containing `| ... | {slug} |`
+3. Remove that row from the table
+4. If a Details section exists for `### {slug}`, remove it too
+5. Write the updated backlog
+
+**Example removal:**
+```markdown
+# Before
+| Status | P | E | Slug | Description |
+|--------|---|---|------|-------------|
+| ⏳ | P1 | M | user-auth | Login flow |
+| ⏳ | P2 | S | theme-adoption | Use theme.js |
+
+# After (user-auth completed)
+| Status | P | E | Slug | Description |
+|--------|---|---|------|-------------|
+| ⏳ | P2 | S | theme-adoption | Use theme.js |
+```
+
+**If backlog doesn't exist:** Skip silently (not all projects use backlogs).
+
+**Include in commit:** Stage the updated backlog file with the feature commit.
 
 ---
 
