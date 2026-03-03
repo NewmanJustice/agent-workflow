@@ -431,6 +431,39 @@ src/commands/murm.js → Handler + help text
 
 ---
 
+## Known Issues / Architectural Questions
+
+### murm-subagent-architecture (P1)
+
+**Problem:** Murmuration currently spawns separate CLI processes (`npx claude`, `cursor`, etc.) to run each feature pipeline in parallel. This doesn't work when:
+1. Running inside an existing Claude Code session (can't spawn nested CLI)
+2. The configured CLI isn't installed/available
+3. User expects sub-agents within the current session
+
+**Current behaviour:**
+```
+murm feat-a feat-b
+  → spawn: npx claude --cwd worktree-a /implement-feature feat-a
+  → spawn: npx claude --cwd worktree-b /implement-feature feat-b
+```
+
+**Expected behaviour (TBD):**
+```
+murm feat-a feat-b
+  → Task tool sub-agent in worktree-a: /implement-feature feat-a
+  → Task tool sub-agent in worktree-b: /implement-feature feat-b
+```
+
+**Questions to resolve:**
+1. Can the Task tool run multiple sub-agents concurrently from the same parent?
+2. How would worktree isolation work with sub-agents vs separate processes?
+3. Should murmuration detect "inside Claude Code" vs "standalone CLI" and behave differently?
+4. Is the CLI-spawning approach still valid for CI/automation scenarios?
+
+**Related:** The `/implement-feature` skill already uses Task tool sub-agents for Alex/Cass/Nigel/Codey — murmuration could potentially use the same pattern for parallel features.
+
+---
+
 *To implement any of these, run:*
 ```bash
 /implement-feature "feature-name"

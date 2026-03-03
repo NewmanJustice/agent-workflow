@@ -25,9 +25,18 @@ description: Run the Alex → Cass → Nigel → Codey pipeline using Task tool 
 | `{HANDOFF_CASS}` | `{FEAT_DIR}/handoff-cass.md` |
 | `{HANDOFF_NIGEL}` | `{FEAT_DIR}/handoff-nigel.md` |
 
+## Multi-Feature Paths (Murmuration Mode)
+
+| Var | Path |
+|-----|------|
+| `{WORKTREE_DIR}` | `.claude/worktrees` |
+| `{WORKTREE_slug}` | `{WORKTREE_DIR}/feat-{slug}` |
+| `{MURM_QUEUE}` | `.claude/murm-queue.json` |
+
 ## Invocation
 
 ```bash
+# Single feature
 /implement-feature                                    # Interactive slug prompt
 /implement-feature "user-auth"                        # New feature
 /implement-feature "user-auth" --interactive          # Force interactive spec creation
@@ -36,6 +45,11 @@ description: Run the Alex → Cass → Nigel → Codey pipeline using Task tool 
 /implement-feature "user-auth" --no-feedback          # Skip feedback collection
 /implement-feature "user-auth" --no-validate          # Skip pre-flight validation
 /implement-feature "user-auth" --no-history           # Skip history recording
+
+# Multiple features — parallel execution (murmuration mode)
+/implement-feature feat-a feat-b feat-c              # Run 3 features in parallel
+/implement-feature feat-a feat-b --max-concurrency=2 # Limit parallelism
+/implement-feature feat-a feat-b --sequential        # Run one at a time (no worktrees)
 ```
 
 ## Pipeline Overview
@@ -62,6 +76,42 @@ description: Run the Alex → Cass → Nigel → Codey pipeline using Task tool 
        │
        ▼
    AUTO-COMMIT → Record completion in history
+```
+
+## Multi-Feature Pipeline Overview (Murmuration Mode)
+
+When multiple slugs are provided, the pipeline uses worktree isolation and parallel Task sub-agents:
+
+```
+/implement-feature slug-a slug-b slug-c
+       │
+       ▼
+┌─────────────────────────────────────────────────────┐
+│ M0. Detect multi-feature mode                       │
+│ M1. Pre-flight validation for ALL features          │
+│ M2. Check for file overlap conflicts                │
+│ M3. Create git worktrees (one per feature)          │
+└─────────────────────────────────────────────────────┘
+       │
+       ▼
+┌─────────────────────────────────────────────────────┐
+│ M4. Spawn PARALLEL Task sub-agents                  │
+│                                                     │
+│   Task(slug-a)  ─┐                                  │
+│   Task(slug-b)  ─┼─► Run concurrently               │
+│   Task(slug-c)  ─┘                                  │
+│                                                     │
+│   Each Task runs full pipeline in its worktree:     │
+│   Alex → [Cass] → Nigel → Codey                     │
+└─────────────────────────────────────────────────────┘
+       │
+       ▼
+┌─────────────────────────────────────────────────────┐
+│ M5. Collect results as sub-agents complete          │
+│ M6. Merge successful features to main               │
+│ M7. Report conflicts/failures                       │
+│ M8. Cleanup worktrees                               │
+└─────────────────────────────────────────────────────┘
 ```
 
 ## Output Constraints (CRITICAL)
@@ -99,11 +149,252 @@ node bin/cli.js validate
 - Show which checks failed with fix suggestions
 - Ask user: "Fix issues and retry?" or "Continue anyway?" or "Abort"
 
-**On validation success:** Continue to Step 1
+**On validation success:** Continue to Step 1 (or Step M0 if multiple slugs)
 
 ---
 
-## Steps 1-5: Setup
+## Step M0: Multi-Feature Detection
+
+**Trigger:** More than one slug provided in arguments.
+
+Parse all slugs from arguments:
+```
+/implement-feature feat-a feat-b feat-c --no-commit
+→ slugs = ["feat-a", "feat-b", "feat-c"]
+→ flags = { noCommit: true }
+```
+
+**Routing:**
+- If `slugs.length > 1`: Enter murmuration mode (Steps M1-M8)
+- If `slugs.length === 1`: Continue to Step 1 (single-feature mode)
+- If `--sequential` flag: Run features one at a time without worktrees
+
+---
+
+## Step M1: Multi-Feature Pre-flight Validation
+
+For EACH slug, verify:
+1. Feature spec exists at `.blueprint/features/feature_{slug}/FEATURE_SPEC.md`
+2. Spec has required sections (Intent, Scope, Actors)
+
+**Display validation table:**
+```
+Pre-flight Validation
+=====================
+
+✓ feat-a: Spec complete, 3 stories
+✓ feat-b: Spec complete, 2 stories
+✗ feat-c: Missing FEATURE_SPEC.md
+```
+
+**On any failure:**
+- Show which features are not ready
+- Suggest: `/implement-feature "feat-c" --pause-after=alex` to create spec
+- Ask: "Continue with ready features only?" or "Abort"
+
+---
+
+## Step M2: Conflict Detection
+
+Scan implementation plans (if they exist) for file overlap:
+
+```bash
+# For each feature with IMPLEMENTATION_PLAN.md, extract files to modify
+grep -h "src/\|lib/\|bin/" .blueprint/features/feature_*/IMPLEMENTATION_PLAN.md
+```
+
+**Display if conflicts found:**
+```
+Conflict Analysis
+=================
+
+⚠ File overlap detected:
+  • src/utils.js: feat-a, feat-b both modify
+
+Recommendation: Run feat-a and feat-b sequentially, or resolve manually.
+```
+
+**On conflict:** Ask user to confirm or adjust feature list.
+
+---
+
+## Step M3: Create Worktrees
+
+For each validated slug, create an isolated git worktree:
+
+```bash
+# Ensure clean working tree first
+git status --porcelain
+
+# Create worktrees (one per feature)
+git worktree add .claude/worktrees/feat-{slug-a} -b feature/{slug-a}
+git worktree add .claude/worktrees/feat-{slug-b} -b feature/{slug-b}
+git worktree add .claude/worktrees/feat-{slug-c} -b feature/{slug-c}
+```
+
+**Announce:**
+```
+Creating worktrees...
+  ✓ .claude/worktrees/feat-a → branch feature/feat-a
+  ✓ .claude/worktrees/feat-b → branch feature/feat-b
+  ✓ .claude/worktrees/feat-c → branch feature/feat-c
+```
+
+---
+
+## Step M4: Spawn Parallel Feature Pipelines
+
+**CRITICAL:** Use multiple Task tool calls IN THE SAME MESSAGE to run concurrently.
+
+For each feature, spawn a Task sub-agent that runs the COMPLETE pipeline in its worktree. All Task calls must be made in a single assistant response to enable parallel execution.
+
+### Task Prompt Template (for each slug):
+
+Use the Task tool with `subagent_type="general-purpose"`:
+
+```
+You are running the implement-feature pipeline for "{slug}".
+
+## Working Directory
+All file operations must use this worktree: .claude/worktrees/feat-{slug}
+
+## Task
+Run the complete feature pipeline in the worktree:
+
+1. **Read Feature Spec**
+   - Path: .claude/worktrees/feat-{slug}/.blueprint/features/feature_{slug}/FEATURE_SPEC.md
+
+2. **Classify Feature**
+   - Technical (refactoring, optimization, infrastructure): Skip to step 4
+   - User-facing: Continue to step 3
+
+3. **Cass** (if user-facing) — Write user stories
+   - Read feature spec for context
+   - Write story-*.md files to feature directory
+   - Write handoff-cass.md
+
+4. **Nigel** — Create tests
+   - Read handoff (from Alex or Cass)
+   - Write: .claude/worktrees/feat-{slug}/test/artifacts/feature_{slug}/test-spec.md
+   - Write: .claude/worktrees/feat-{slug}/test/feature_{slug}.test.js
+   - Write: handoff-nigel.md
+
+5. **Codey Plan** — Create implementation plan
+   - Read handoff-nigel.md
+   - Write: IMPLEMENTATION_PLAN.md
+
+6. **Codey Implement** — Write code to pass tests
+   - Follow the implementation plan
+   - Run tests: node --test test/feature_{slug}.test.js
+   - Iterate until tests pass
+
+## Rules
+- Work ONLY within .claude/worktrees/feat-{slug}
+- Do NOT commit changes (will be merged later)
+- Do NOT modify files outside the worktree
+- Run tests from within the worktree directory
+
+## Completion
+When done, report status as:
+PIPELINE_RESULT: {"slug": "{slug}", "status": "success|failed", "tests": "X/Y passing", "files": ["list of created/modified files"], "error": "if failed, why"}
+```
+
+**Example: 3 features in parallel**
+
+Make THREE Task tool calls in a single message:
+- Task 1: Pipeline for `feat-a` in `.claude/worktrees/feat-a`
+- Task 2: Pipeline for `feat-b` in `.claude/worktrees/feat-b`
+- Task 3: Pipeline for `feat-c` in `.claude/worktrees/feat-c`
+
+The Task tool executes these concurrently.
+
+---
+
+## Step M5: Collect Results
+
+As each Task sub-agent completes, parse its PIPELINE_RESULT:
+
+```javascript
+results = [
+  { slug: "feat-a", status: "success", tests: "5/5", files: ["src/a.js"] },
+  { slug: "feat-b", status: "success", tests: "3/3", files: ["src/b.js"] },
+  { slug: "feat-c", status: "failed", error: "Tests failed: 2/4 passing" }
+]
+```
+
+Wait for ALL sub-agents to complete before proceeding.
+
+---
+
+## Step M6: Merge Successful Features
+
+For each feature with `status: "success"`:
+
+```bash
+# From main repository (not worktree)
+git checkout main
+
+# Merge the feature branch
+git merge feature/{slug} --no-ff -m "feat({slug}): Add {slug} feature
+
+Implemented via murmuration pipeline.
+
+Co-Authored-By: Claude <noreply@anthropic.com>"
+```
+
+**Handle merge conflicts:**
+- Do NOT force resolve or abort
+- Record: `{ slug, status: "conflict", branch: "feature/{slug}" }`
+- Preserve worktree for manual resolution
+- Continue merging other features
+
+---
+
+## Step M7: Report Summary
+
+**Display murmuration summary:**
+```
+--- Murmuration Complete ---
+
+## Landed (merged to main)
+  ✓ feat-a: 5 tests passing, 3 files changed
+  ✓ feat-b: 3 tests passing, 2 files changed
+
+## Turbulence (merge conflicts)
+  ⚠ (none)
+
+## Lost Formation (pipeline failed)
+  ✗ feat-c: Tests failed (2/4 passing)
+    Worktree preserved: .claude/worktrees/feat-c
+    To debug: cd .claude/worktrees/feat-c && node --test
+
+## Next Steps
+- Run `node --test` to verify all merged tests pass
+- Resolve any conflicts manually, then: git worktree remove .claude/worktrees/feat-X
+```
+
+---
+
+## Step M8: Cleanup Worktrees
+
+**For successfully merged features:**
+```bash
+git worktree remove .claude/worktrees/feat-{slug} --force
+git branch -d feature/{slug}  # Safe delete (already merged)
+```
+
+**Preserve worktrees for:**
+- Failed pipelines (for debugging)
+- Merge conflicts (for manual resolution)
+
+**Final cleanup check:**
+```bash
+git worktree list  # Verify cleanup
+```
+
+---
+
+## Steps 1-5: Setup (Single-Feature Mode)
 
 ### Step 1: Parse Arguments
 Extract: `{slug}`, pause gates (`--pause-after`), `--no-commit`
