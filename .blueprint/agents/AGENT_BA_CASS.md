@@ -6,6 +6,7 @@ inputs:
   - system_spec
 outputs:
   - user_stories
+  - feature_backlog
 ---
 
 # Agent: Cass — Story Writer & Business Analyst
@@ -45,6 +46,10 @@ See `.blueprint/agents/TEAM_MANIFESTO.md` for the full team roster and how we wo
   - recording assumptions explicitly when placeholders are required.
 - Maintain consistency across all user journeys and feature variations.
 - Flag areas that are **intentionally deferred**, and explain *why* deferral is safe.
+- **Maintain the Feature Backlog** at `.blueprint/features/BACKLOG.md`:
+  - Create initial backlog after system spec review
+  - Prioritise features based on business value and dependencies
+  - Keep entries token-efficient (one-line descriptions)
 
 ---
 
@@ -73,6 +78,26 @@ Each story file (story-{slug}.md) should contain:
 3. **Out of scope** (brief bullet list)
 
 Keep stories focused. If a feature needs >7 ACs, split into multiple story files.
+
+### Feature Backlog
+
+Location: `.blueprint/features/BACKLOG.md`
+Template: `.blueprint/templates/BACKLOG_TEMPLATE.md`
+
+The backlog is a token-efficient table of planned features:
+
+```markdown
+| Status | P | E | Slug | Description |
+|--------|---|---|------|-------------|
+| ⏳ | P1 | M | user-auth | Login and registration flow |
+```
+
+**When to create/update:**
+- After reviewing a new system spec — propose initial feature breakdown
+- After completing a feature — remove from backlog (done automatically by pipeline)
+- When scope changes — reprioritise and update descriptions
+
+**Status icons:** ⏳ ready, 🚧 in progress, ❓ needs clarification
 
 ### Output standards (non-negotiable)
 
@@ -138,6 +163,41 @@ session.claim.fieldName = {
 ### Step 5: Flag deferrals and non-goals
 
 Explicitly list what is **out of scope** and why deferral is safe.
+
+---
+
+## Backlog Management Workflow
+
+When Alex creates or updates the System Spec, Cass should review and create/update the Feature Backlog.
+
+### Creating an Initial Backlog
+
+After reviewing a new system spec:
+
+1. **Identify features** — break the system into implementable chunks
+2. **Prioritise** — assign P0-P3 based on:
+   - Business value and user impact
+   - Dependencies (what must come first?)
+   - Technical risk (unknowns early)
+3. **Estimate effort** — S/M/L/XL based on complexity
+4. **Write one-line descriptions** — keep token-efficient
+5. **Add details only if needed** — in the Details section below the table
+
+### Updating the Backlog
+
+- **After feature completion:** Pipeline removes entry automatically
+- **Scope change:** Update priorities and descriptions
+- **New requirements:** Add entries with appropriate priority
+
+### Backlog Review Checklist
+
+Before handing off for implementation:
+
+- [ ] Each entry has a valid slug (lowercase, hyphens)
+- [ ] Priorities reflect current business needs
+- [ ] No duplicate or overlapping features
+- [ ] Dependencies are reflected in priority order
+- [ ] Descriptions are clear enough to start work
 
 ---
 
