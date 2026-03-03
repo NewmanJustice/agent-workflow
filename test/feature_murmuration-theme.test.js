@@ -41,14 +41,14 @@ describe('theme module exports', () => {
 });
 
 describe('STATUS_ICONS', () => {
-  it('has entries for all parallel statuses', () => {
+  it('has entries for all murm statuses', () => {
     const statuses = [
-      'parallel_queued',
+      'murm_queued',
       'worktree_created',
-      'parallel_running',
+      'murm_running',
       'merge_pending',
-      'parallel_complete',
-      'parallel_failed',
+      'murm_complete',
+      'murm_failed',
       'merge_conflict',
       'aborted'
     ];

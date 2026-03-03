@@ -30,8 +30,8 @@ describe('theme.js exports', () => {
 
   it('exports STATUS_ICONS object', () => {
     assert.strictEqual(typeof theme.STATUS_ICONS, 'object');
-    assert.ok('parallel_complete' in theme.STATUS_ICONS);
-    assert.ok('parallel_failed' in theme.STATUS_ICONS);
+    assert.ok('murm_complete' in theme.STATUS_ICONS);
+    assert.ok('murm_failed' in theme.STATUS_ICONS);
   });
 
   it('exports progressBar function', () => {
@@ -194,8 +194,8 @@ describe('TTY detection pattern', () => {
 describe('Consistent status icons', () => {
   it('theme exports checkmark and X icons', () => {
     // These should be used across all modules
-    assert.strictEqual(theme.STATUS_ICONS.parallel_complete, '\u2713');
-    assert.strictEqual(theme.STATUS_ICONS.parallel_failed, '\u2717');
+    assert.strictEqual(theme.STATUS_ICONS.murm_complete, '\u2713');
+    assert.strictEqual(theme.STATUS_ICONS.murm_failed, '\u2717');
   });
 
   it('validate uses consistent pass/fail indicators', async () => {

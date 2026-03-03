@@ -43,12 +43,12 @@ const STAGE_NAMES = {
 // --- Status Icons (replacing emoji) ---
 
 const STATUS_ICONS = {
-  'parallel_queued': '\u00b7',    // ·
+  'murm_queued': '\u00b7',        // ·
   'worktree_created': '\u25cb',   // ○
-  'parallel_running': '\u25d4',   // ◔
+  'murm_running': '\u25d4',       // ◔
   'merge_pending': '\u25d1',      // ◑
-  'parallel_complete': '\u2713',  // ✓
-  'parallel_failed': '\u2717',    // ✗
+  'murm_complete': '\u2713',      // ✓
+  'murm_failed': '\u2717',        // ✗
   'merge_conflict': '\u26a0',     // ⚠
   'aborted': '\u25a0'             // ■
 };
