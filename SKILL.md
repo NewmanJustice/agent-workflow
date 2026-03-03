@@ -326,6 +326,40 @@ Wait for ALL sub-agents to complete before proceeding.
 
 ---
 
+## Step M5.5: Commit Worktree Changes
+
+For each successful pipeline, commit the changes in its worktree. This prepares the feature branch for merging.
+
+**IMPORTANT:** Use absolute paths to avoid context confusion.
+
+```bash
+# For each slug with status: "success"
+cd /absolute/path/to/.claude/worktrees/feat-{slug}
+git add -A
+git commit -m "feat({slug}): {brief summary from PIPELINE_RESULT}
+
+{tests} passing, {file count} files changed.
+
+Co-Authored-By: Claude <noreply@anthropic.com>"
+```
+
+**Example with 3 features:**
+```bash
+# Commit each worktree (can run in parallel)
+cd /workspaces/project/.claude/worktrees/feat-a && git add -A && git commit -m "..."
+cd /workspaces/project/.claude/worktrees/feat-b && git add -A && git commit -m "..."
+cd /workspaces/project/.claude/worktrees/feat-c && git add -A && git commit -m "..."
+```
+
+**Skip failed pipelines** — their worktrees are preserved uncommitted for debugging.
+
+**Return to main repo** before proceeding to merge:
+```bash
+cd /workspaces/project  # Back to main repo root
+```
+
+---
+
 ## Step M6: Merge Successful Features
 
 For each feature with `status: "success"`:
