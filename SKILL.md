@@ -21,6 +21,7 @@ description: Run the Alex → Cass → Nigel → Codey pipeline using Task tool 
 | `{HISTORY}` | `.claude/pipeline-history.json` |
 | `{RETRY_CONFIG}` | `.claude/retry-config.json` |
 | `{FEEDBACK_CONFIG}` | `.claude/feedback-config.json` |
+| `{COST_CONFIG}` | `.claude/cost-config.json` |
 | `{HANDOFF_ALEX}` | `{FEAT_DIR}/handoff-alex.md` |
 | `{HANDOFF_CASS}` | `{FEAT_DIR}/handoff-cass.md` |
 | `{HANDOFF_NIGEL}` | `{FEAT_DIR}/handoff-nigel.md` |
@@ -43,6 +44,7 @@ description: Run the Alex → Cass → Nigel → Codey pipeline using Task tool 
 /implement-feature "user-auth" --interactive          # Force interactive spec creation
 /implement-feature "user-auth" --pause-after=alex|cass|nigel|codey-plan
 /implement-feature "user-auth" --no-commit
+/implement-feature "user-auth" --no-diff-preview      # Skip diff preview before commit
 /implement-feature "user-auth" --no-feedback          # Skip feedback collection
 /implement-feature "user-auth" --no-validate          # Skip pre-flight validation
 /implement-feature "user-auth" --no-history           # Skip history recording
@@ -71,12 +73,12 @@ description: Run the Alex → Cass → Nigel → Codey pipeline using Task tool 
        ▼
    ALEX → [feedback] → CASS → [feedback] → NIGEL → [feedback] → CODEY
        │                                                           │
-       └──────────── Record timing in history.js ──────────────────┘
+       └──────────── Record timing + tokens in history.js ─────────┘
        │                                                           │
        └──────────── On failure: retry.js strategy ────────────────┘
        │
        ▼
-   AUTO-COMMIT → Record completion in history
+   DIFF-PREVIEW → AUTO-COMMIT → Record completion + cost in history
 ```
 
 ## Multi-Feature Pipeline Overview (Murmuration Mode)
@@ -327,9 +329,15 @@ Wait for ALL sub-agents to complete before proceeding.
 
 ---
 
-## Step M5.5: Commit Worktree Changes
+## Step M5.5: Diff Preview & Commit Worktree Changes
 
-For each successful pipeline, commit the changes in its worktree. This prepares the feature branch for merging.
+For each successful pipeline, show diff preview (unless `--no-diff-preview`) then commit the changes in its worktree.
+
+**Diff Preview per Worktree:**
+- Show changes for each worktree before committing
+- User can approve/abort each worktree individually
+- If user aborts a worktree, mark it as `user-aborted` (not failed)
+- Continue to next worktree regardless
 
 **IMPORTANT:** Use absolute paths to avoid context confusion.
 
@@ -946,6 +954,50 @@ For detailed guidance, see: .blueprint/agents/AGENT_DEVELOPER_CODEY.md
 
 ---
 
+## Step 10.5: Diff Preview
+
+**Module:** `src/diff-preview.js`
+
+Before committing, show the user a preview of all changes unless skipped.
+
+**Skip conditions** (any of these skips the preview):
+- `--no-commit` flag is set
+- `--no-diff-preview` flag is set
+- `--yes` flag is set (non-interactive mode)
+- No changes detected
+
+**Display:**
+```
+Changes to commit for feature_{slug}:
+
+Added (3 files):
+  + .blueprint/features/feature_{slug}/FEATURE_SPEC.md
+  + test/feature_{slug}.test.js
+  + src/feature.js
+
+Modified (1 file):
+  ~ src/index.js
+
+Deleted (0 files):
+  (none)
+
+Total: 4 files changed
+
+[c]ommit / [a]bort / [d]iff (show full diff)?
+```
+
+**User choices:**
+- `c` or `commit`: Proceed to auto-commit
+- `a` or `abort`: Exit pipeline cleanly (exit code 0, not a failure)
+- `d` or `diff`: Show full `git diff` output, then re-prompt
+
+**On abort:**
+- Record in history: `status: "user-aborted"`, `reason: "User aborted at diff preview"`
+- Do NOT record as failure
+- Clean exit
+
+---
+
 ## Step 11: Auto-commit & Backlog Cleanup
 
 If not `--no-commit`:
@@ -1001,7 +1053,7 @@ After successful commit, remove the completed feature from `{BACKLOG}`:
 
 ## Step 12: Report Status & Finalize History (ENHANCED)
 
-**Module:** `src/history.js`
+**Modules:** `src/history.js`, `src/cost.js`
 
 Unless `--no-history` flag is set, finalize the history entry:
 
@@ -1010,6 +1062,8 @@ historyEntry.status = "success";
 historyEntry.completedAt = new Date().toISOString();
 historyEntry.totalDurationMs = completedAt - startedAt;
 historyEntry.commitHash = "{hash}";
+historyEntry.totalTokens = { input: N, output: M };
+historyEntry.totalCost = X.XXX;
 // Save to .claude/pipeline-history.json
 ```
 
@@ -1032,6 +1086,16 @@ historyEntry.commitHash = "{hash}";
 - Alex spec: rated 4/5 by Cass
 - Cass stories: rated 5/5 by Nigel
 - Nigel tests: rated 4/5 by Codey
+
+## Cost Summary
+STAGE            INPUT     OUTPUT    COST
+alex             2,450     1,230     $0.014
+cass             3,100     1,850     $0.019
+nigel            2,800     2,100     $0.018
+codey-plan       1,500       890     $0.009
+codey-impl       4,200     3,500     $0.028
+─────────────────────────────────────────
+TOTAL           14,050     9,570     $0.088
 
 ## Next Action
 Pipeline complete. Run `npm test` to verify or `/implement-feature` for next feature.
@@ -1189,10 +1253,12 @@ The pipeline integrates these murmur8 modules:
 | Module | File | Integration Points |
 |--------|------|-------------------|
 | **validate** | `src/validate.js` | Step 0: Pre-flight checks |
-| **history** | `src/history.js` | Steps 5-12: Record timing, finalize entry |
+| **history** | `src/history.js` | Steps 5-12: Record timing, tokens, cost |
 | **insights** | `src/insights.js` | Step 3.5: Preview, On failure: Analysis |
 | **feedback** | `src/feedback.js` | Steps 6.5, 7.5, 8.5: Quality gates |
 | **retry** | `src/retry.js` | On failure: Strategy recommendation |
+| **cost** | `src/cost.js` | Steps 6-12: Track tokens, calculate cost |
+| **diff-preview** | `src/diff-preview.js` | Step 10.5: Show changes before commit |
 
 ### CLI Commands Available
 
@@ -1202,7 +1268,9 @@ npx murmur8 validate
 
 # History management
 npx murmur8 history
+npx murmur8 history --cost          # Include cost breakdown
 npx murmur8 history --stats
+npx murmur8 history --stats --cost  # Include cost metrics
 npx murmur8 history --all
 
 # Pipeline insights
@@ -1210,6 +1278,12 @@ npx murmur8 insights
 npx murmur8 insights --feedback
 npx murmur8 insights --bottlenecks
 npx murmur8 insights --failures
+
+# Cost configuration
+npx murmur8 cost-config
+npx murmur8 cost-config set inputPrice 3    # Per million tokens
+npx murmur8 cost-config set outputPrice 15  # Per million tokens
+npx murmur8 cost-config reset
 
 # Retry configuration
 npx murmur8 retry-config
@@ -1224,7 +1298,8 @@ npx murmur8 feedback-config set minRatingThreshold 3.5
 
 | File | Purpose |
 |------|---------|
-| `.claude/pipeline-history.json` | Execution history with timing and feedback |
+| `.claude/pipeline-history.json` | Execution history with timing, feedback, and cost |
 | `.claude/retry-config.json` | Retry strategies and thresholds |
 | `.claude/feedback-config.json` | Feedback quality gate thresholds |
+| `.claude/cost-config.json` | Token pricing configuration |
 | `.claude/implement-queue.json` | Pipeline queue state (existing) |
