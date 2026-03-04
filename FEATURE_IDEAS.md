@@ -48,9 +48,9 @@ Suggested features to implement using the `/implement-feature` pipeline.
 | ✅ | parallel-timeout | M | Timeout per pipeline to prevent runaway |
 | ✅ | parallel-disk-check | S | Warn if disk space is low |
 | ✅ | parallel-max-limit | S | Cap total features to prevent resource exhaustion |
-| ⏳ | cost-tracking | M | Track token usage and estimated costs |
+| ✅  | cost-tracking | M | Track token usage and estimated costs |
 | ✅ | export-history | S | Export history to CSV/JSON |
-| ⏳ | diff-preview | S | Show diff before auto-commit |
+| ✅  | diff-preview | S | Show diff before auto-commit |
 
 ## Medium Priority (P2)
 
