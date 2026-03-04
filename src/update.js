@@ -15,6 +15,7 @@ const USER_CONTENT_DIRS = [
 // Directories/files that should be updated
 const UPDATABLE = [
   'agents',
+  'prompts',
   'templates',
   'ways_of_working'
 ];
@@ -91,6 +92,7 @@ Update complete!
 
 Updated:
   - .blueprint/agents/
+  - .blueprint/prompts/
   - .blueprint/templates/
   - .blueprint/ways_of_working/
   - SKILL.md

@@ -81,6 +81,12 @@ function createCopilotSymlink() {
   }
 }
 
+// Framework directories to copy (these are part of the murmur8 framework)
+const FRAMEWORK_DIRS = ['agents', 'prompts', 'templates', 'ways_of_working'];
+
+// User content directories to create empty (these are for the target project's own content)
+const USER_CONTENT_DIRS = ['features', 'system_specification'];
+
 async function init() {
   const blueprintSrc = path.join(PACKAGE_ROOT, '.blueprint');
   const blueprintDest = path.join(TARGET_DIR, '.blueprint');
@@ -97,7 +103,13 @@ async function init() {
       console.log('Aborted. Use "murmur8 update" to update existing installation.');
       return;
     }
-    fs.rmSync(blueprintDest, { recursive: true });
+    // Only remove framework directories, preserve user content
+    for (const dir of FRAMEWORK_DIRS) {
+      const dirPath = path.join(blueprintDest, dir);
+      if (fs.existsSync(dirPath)) {
+        fs.rmSync(dirPath, { recursive: true });
+      }
+    }
   }
 
   // Copy skill to .claude/commands/ (master location)
@@ -117,9 +129,25 @@ async function init() {
     createCopilotSymlink();
   }
 
-  // Copy .blueprint directory
+  // Copy framework directories only (not user content directories)
   console.log('Copying .blueprint directory...');
-  copyDir(blueprintSrc, blueprintDest);
+  fs.mkdirSync(blueprintDest, { recursive: true });
+  for (const dir of FRAMEWORK_DIRS) {
+    const src = path.join(blueprintSrc, dir);
+    const dest = path.join(blueprintDest, dir);
+    if (fs.existsSync(src)) {
+      copyDir(src, dest);
+    }
+  }
+
+  // Create empty user content directories with .gitkeep
+  for (const dir of USER_CONTENT_DIRS) {
+    const dest = path.join(blueprintDest, dir);
+    if (!fs.existsSync(dest)) {
+      fs.mkdirSync(dest, { recursive: true });
+      fs.writeFileSync(path.join(dest, '.gitkeep'), '');
+    }
+  }
   console.log('Copied .blueprint directory');
 
   // Copy .business_context directory
